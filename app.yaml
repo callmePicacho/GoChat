@@ -1,0 +1,18 @@
+jwt:
+  sign_key: "gooooIM"
+  expire_time: 720  # hour
+mysql:
+  dns: "root:root@tcp(127.0.0.1:3306)/gochat?charset=utf8mb4&parseTime=True&loc=Local"
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+app:
+  salt: "gogogoChat"    # 密码加盐
+  node: 1  # 雪花算法 node
+  ip: "127.0.0.1"
+  http_server_port: "9090"     # http 端口
+  websocket_server_port: "9091"  # websocket 端口
+  rpc-port: "9091"  # rpc 端口
+  worker_pool_size: 10  # 业务 worker 队列数量
+  max_worker_task: 1024 # 业务 worker 对应负责的任务队列最大任务存储数量
+  heartbeattime: 30 # 心跳超时时间 second
