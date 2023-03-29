@@ -33,7 +33,7 @@ type Configuration struct {
 		HTTPServerPort   string `mapstructure:"http_server_port"`      // HTTP 服务器端口
 		WebsocketPort    string `mapstructure:"websocket_server_port"` // WebSocket 服务器端口
 		RPCPort          string `mapstructure:"rpc-port"`              // RPC 服务器端口
-		WorkerPoolSize   int    `mapstructure:"worker_pool_size"`      // 业务 worker 队列数量
+		WorkerPoolSize   uint32 `mapstructure:"worker_pool_size"`      // 业务 worker 队列数量
 		MaxWorkerTask    int    `mapstructure:"max_worker_task"`       // 业务 worker 对应负责的任务队列最大任务存储数量
 		HeartbeatTimeout int    `mapstructure:"heartbeattime"`         // 心跳超时时间（秒）
 	} `mapstructure:"app"`

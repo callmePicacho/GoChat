@@ -61,6 +61,9 @@ func TestRegister(t *testing.T) {
 	t.Log(respData)
 }
 
+// 账号：123456789
+// 密码：123
+// token：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE2ODI2NTA1MjR9.TNwJsMqHlsWcusYALW5jpVxi2a7yhOKs0Vpoy7e3BEs
 func TestLogin(t *testing.T) {
 	// 创建一个 http.Client
 	client := &http.Client{}
@@ -95,7 +98,8 @@ func TestLogin(t *testing.T) {
 		Code int    `json:"code"`
 		Msg  string `json:"msg"`
 		Data struct {
-			Token string `json:"token"`
+			Token  string `json:"token"`
+			UserId string `json:"user_id"`
 		} `json:"data"`
 	}
 	err = json.Unmarshal(responseBody, &respData)

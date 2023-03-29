@@ -1,0 +1,53 @@
+syntax = "proto3";
+package pb;
+option go_package = "GoChat/pkg/protocol/pb";
+
+// 所有消息类型
+enum CmdType {// 枚举消息类型
+  UnKnow = 0;  // 未知
+  Login = 1;   // 连接注册，客户端向服务端发送，建立连接
+  Heartbeat = 2;  // 心跳，客户端向服务端发送，连接保活
+  SYNC = 3;   // 离线消息同步，客户端向服务端发送，拉取离线消息
+  ACK = 4;   // ACK 消息，回复
+  Up = 5;  // 消息上行投递，指从客户端向服务端发送的消息
+  Push = 6;  // 消息下行投递，指从服务端向客户端发送的消息
+}
+
+// 顶层消息
+message CmdMsg {
+  CmdType type = 1;   // 消息类型，根据不同消息类型，可以将 data 解析成下面其他类型
+  bytes data = 2;    // 数据
+}
+
+// 登录
+message LoginMsg {
+  uint64 user_id = 1;  // 用户id
+  bytes token = 2;    // token
+}
+
+// 心跳
+message HeartBeatMsg {
+
+}
+
+// 离线消息同步
+message SyncMsg {
+  // TODO
+}
+
+// ACK
+message ACKMsg {
+
+}
+
+// 上行消息
+message UpMsg {
+  uint64 client_id = 1;
+  bytes content = 2;  // 实际数据
+}
+
+// 下行消息
+message PushMsg {
+  uint64 msg_id = 1;  // 消息id
+  bytes content = 2;  // 数据
+}

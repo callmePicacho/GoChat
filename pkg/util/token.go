@@ -8,15 +8,15 @@ import (
 )
 
 type UserClaims struct {
-	ID uint64 `json:"id"`
+	UserId uint64 `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken
 // 生成 token
-func GenerateToken(ID uint64) (string, error) {
+func GenerateToken(userId uint64) (string, error) {
 	UserClaim := &UserClaims{
-		ID: ID,
+		UserId: userId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * time.Duration(config.GlobalConfig.JWT.ExpireTime))),
 		},

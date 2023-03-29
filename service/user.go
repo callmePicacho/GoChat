@@ -108,7 +108,8 @@ func Login(c *gin.Context) {
 		"code": 200,
 		"msg":  "登录成功",
 		"data": gin.H{
-			"token": token,
+			"token":   token,
+			"user_id": util.Uint64ToStr(ub.ID),
 		},
 	})
 }

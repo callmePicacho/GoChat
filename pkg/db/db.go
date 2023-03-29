@@ -1,9 +1,7 @@
 package db
 
 import (
-	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -13,8 +11,7 @@ import (
 )
 
 var (
-	DB  *gorm.DB
-	RDB *redis.Client
+	DB *gorm.DB
 )
 
 func InitMySQL(dataSource string) {
@@ -35,18 +32,4 @@ func InitMySQL(dataSource string) {
 		panic(err)
 	}
 	fmt.Println("MySQL init ok")
-}
-
-func InitRedis(addr, password string) {
-	fmt.Println("Redis init...")
-	RDB = redis.NewClient(&redis.Options{
-		Addr:     addr,
-		DB:       0,
-		Password: password,
-	})
-	err := RDB.Ping(context.Background()).Err()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Redis init ok")
 }

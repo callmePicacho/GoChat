@@ -26,7 +26,7 @@ func CreateGroup(c *gin.Context) {
 	}
 	// 获取用户信息
 	uc := c.MustGet("user_claims").(*util.UserClaims)
-	ids = append(ids, uc.ID)
+	ids = append(ids, uc.UserId)
 
 	// 获取 ids 用户信息
 	ids, err := model.GetUserIdByIds(ids)
@@ -41,7 +41,7 @@ func CreateGroup(c *gin.Context) {
 	// 创建群组
 	group := &model.Group{
 		Name:    name,
-		OwnerID: uc.ID,
+		OwnerID: uc.UserId,
 	}
 	err = model.CreateGroup(group, ids)
 	if err != nil {

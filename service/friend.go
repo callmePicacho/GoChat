@@ -21,7 +21,7 @@ func AddFriend(c *gin.Context) {
 	}
 	// 获取自己的信息
 	uc := c.MustGet("user_claims").(*util.UserClaims)
-	if uc.ID == friendId {
+	if uc.UserId == friendId {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "不能添加自己为好友",
@@ -38,7 +38,7 @@ func AddFriend(c *gin.Context) {
 		return
 	}
 	// 查询是否已建立好友关系
-	isFriend, err := model.IsFriend(uc.ID, ub.ID)
+	isFriend, err := model.IsFriend(uc.UserId, ub.ID)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -56,7 +56,7 @@ func AddFriend(c *gin.Context) {
 
 	// 建立好友关系
 	friend := &model.Friend{
-		UserID:   uc.ID,
+		UserID:   uc.UserId,
 		FriendID: ub.ID,
 	}
 	err = model.CreateFriend(friend)

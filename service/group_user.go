@@ -23,7 +23,7 @@ func GroupUserList(c *gin.Context) {
 	uc := c.MustGet("user_claims").(*util.UserClaims)
 
 	// 验证用户是否属于该群
-	isBelong, err := model.IsBelongToGroup(uc.ID, groupId)
+	isBelong, err := model.IsBelongToGroup(uc.UserId, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
