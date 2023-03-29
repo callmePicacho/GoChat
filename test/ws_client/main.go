@@ -43,8 +43,20 @@ func (c *Client) Start() {
 	// 向 websocket 发送登录请求
 	c.Login()
 
+	// 心跳
+	go c.Heartbeat()
+
 	// 收取消息
 	c.Receive()
+}
+
+func (c *Client) Heartbeat() {
+	//  2min 一次
+	ticker := time.NewTicker(time.Second * 2 * 60)
+	for range ticker.C {
+		c.SendMsg(pb.CmdType_Heartbeat, nil)
+		fmt.Println("发送心跳", time.Now().Format("2006-01-02 15:04:05"))
+	}
 }
 
 func (c *Client) Receive() {
@@ -67,8 +79,9 @@ func (c *Client) HandlerMessage(bytes []byte) {
 
 	switch msg.Type {
 	case pb.CmdType_Login: // 登录
-		fmt.Println("收到登录ACK")
+		fmt.Println("收到登录ACK", time.Now().Format("2006-01-02 15:04:05"))
 	case pb.CmdType_Heartbeat: // 心跳
+		fmt.Println("收到心跳ACK", time.Now().Format("2006-01-02 15:04:05"))
 	case pb.CmdType_SYNC: // 离线消息同步
 
 	case pb.CmdType_ACK: // 消息ACK

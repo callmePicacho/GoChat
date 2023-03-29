@@ -83,5 +83,15 @@ func (r *Req) Login() {
 }
 
 func (r *Req) HeartBeat() {
-
+	// 回复心跳
+	msg := &pb.CmdMsg{
+		Type: pb.CmdType_Heartbeat,
+		Data: nil,
+	}
+	bytes, err := proto.Marshal(msg)
+	if err != nil {
+		fmt.Println("[心跳] proto.Marshal err:", err)
+		return
+	}
+	r.conn.SendMsg(r.conn.UserId, bytes)
 }

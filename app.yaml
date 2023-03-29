@@ -15,4 +15,4 @@ app:
   rpc-port: "9092"  # rpc 端口
   worker_pool_size: 10  # 业务 worker 队列数量
   max_worker_task: 1024 # 业务 worker 队列中，每个 worker 的最大任务存储数量
-  heartbeattime: 30 # 心跳超时时间 second
+  heartbeattime: 600 # 心跳超时时间 second ，10 * 60

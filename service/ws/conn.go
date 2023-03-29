@@ -13,6 +13,7 @@ import (
 
 // Conn 连接实例
 // 1. 启动读写线程
+// 2. 读线程读到数据后，根据数据类型获取处理函数，交给 worker 队列调度执行
 type Conn struct {
 	server       *Server         // 当前连接属于哪个 server
 	UserId       uint64          // 连接所属用户id
@@ -86,7 +87,7 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 		return
 	}
 
-	req := Req{
+	req := &Req{
 		conn: c,
 		data: msg.Data,
 		f:    nil,
@@ -99,7 +100,7 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 		req.f = req.HeartBeat
 	case pb.CmdType_SYNC: // 离线消息同步
 
-	case pb.CmdType_ACK: // 消息ACK
+	case pb.CmdType_ACK: // 消息ACK，服务端收到的 ACK 是
 
 	case pb.CmdType_Up: // 上行消息
 

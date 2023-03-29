@@ -16,18 +16,18 @@ type Server struct {
 	Port              string
 	connUnLoginMap    map[*Conn]struct{} // 还未验证连接，调用 /ws 的 websocket 连接
 	connUnLoginWMutex sync.RWMutex       // 还未验证连接读写锁
-	connMap           map[uint64]*Conn   // 当通过验证，会在 conn验证通过的用户连接 k-用户userid v-连接
+	connMap           map[uint64]*Conn   // 验证通过的用户连接，通过验证将会把 conn 从 connUnLoginMap 移到 connMap 中 k-用户userid v-连接
 	connRWMutex       sync.RWMutex       // 验证通过连接读写锁
-	taskQueue         []chan Req         // 工作池
+	taskQueue         []chan *Req        // 工作池
 }
 
 func NewServer() *Server {
 	return &Server{
 		IP:             config.GlobalConfig.App.IP,
 		Port:           config.GlobalConfig.App.WebsocketPort,
-		connUnLoginMap: make(map[*Conn]struct{}, 10000),                          // 提前预留大小
-		connMap:        make(map[uint64]*Conn, 10000),                            // 提前预留大小
-		taskQueue:      make([]chan Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
+		connUnLoginMap: make(map[*Conn]struct{}, 10000),                           // 提前预留大小
+		connMap:        make(map[uint64]*Conn, 10000),                             // 提前预留大小
+		taskQueue:      make([]chan *Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
 	}
 }
 
@@ -37,7 +37,7 @@ func (cm *Server) AddConnUnLogin(conn *Conn) {
 	defer cm.connUnLoginWMutex.Unlock()
 
 	cm.connUnLoginMap[conn] = struct{}{}
-	fmt.Printf("connection add to Server successfully: conn num = %d \n", len(cm.connUnLoginMap))
+	fmt.Printf("connection add to Server successfully: connUnLogin num = %d \n", len(cm.connUnLoginMap))
 }
 
 // RemoveConnUnLogin 删除连接
@@ -47,7 +47,7 @@ func (cm *Server) RemoveConnUnLogin(conn *Conn) {
 
 	delete(cm.connUnLoginMap, conn)
 
-	fmt.Println("connection Remove UserID=", conn.UserId, " successfully: conn num = ", len(cm.connUnLoginMap))
+	fmt.Println("connection Remove UserID=", conn.UserId, " successfully: connUnLogin num = ", len(cm.connUnLoginMap))
 }
 
 // InConnUnLogin 判断 conn 是否存在 unlogin map 中
@@ -120,14 +120,14 @@ func (cm *Server) StartWorkerPool() {
 	// 初始化并启动 worker 工作池
 	for i := 0; i < len(cm.taskQueue); i++ {
 		// 初始化
-		cm.taskQueue[i] = make(chan Req, config.GlobalConfig.App.MaxWorkerTask) // 初始化worker队列中，每个worker的队列长度
+		cm.taskQueue[i] = make(chan *Req, config.GlobalConfig.App.MaxWorkerTask) // 初始化worker队列中，每个worker的队列长度
 		// 启动
 		go cm.StartOneWorker(i, cm.taskQueue[i])
 	}
 }
 
 // StartOneWorker 启动 worker 的工作流程
-func (cm *Server) StartOneWorker(workerID int, taskQueue chan Req) {
+func (cm *Server) StartOneWorker(workerID int, taskQueue chan *Req) {
 	fmt.Println("Worker ID = ", workerID, " is started.")
 	for {
 		select {
@@ -138,7 +138,7 @@ func (cm *Server) StartOneWorker(workerID int, taskQueue chan Req) {
 }
 
 // SendMsgToTaskQueue 将消息交给 taskQueue，由 worker 调度处理
-func (cm *Server) SendMsgToTaskQueue(req Req) {
+func (cm *Server) SendMsgToTaskQueue(req *Req) {
 	if len(cm.taskQueue) > 0 {
 		// hash
 		i := rand.Intn(len(cm.taskQueue))

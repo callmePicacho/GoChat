@@ -21,7 +21,7 @@ func TestRegister(t *testing.T) {
 
 	// 准备要发送的表单数据
 	data := url.Values{}
-	data.Set("phone_number", "1234")
+	data.Set("phone_number", "222")
 	data.Set("nickname", "test")
 	data.Set("password", "123")
 
@@ -61,9 +61,6 @@ func TestRegister(t *testing.T) {
 	t.Log(respData)
 }
 
-// 账号：123456789
-// 密码：123
-// token：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE2ODI2NTA1MjR9.TNwJsMqHlsWcusYALW5jpVxi2a7yhOKs0Vpoy7e3BEs
 func TestLogin(t *testing.T) {
 	// 创建一个 http.Client
 	client := &http.Client{}
