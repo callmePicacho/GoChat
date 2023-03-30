@@ -20,38 +20,132 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// 上行消息类型
+// 会话类型
+type SessionType int32
+
+const (
+	SessionType_ST_UnKnow SessionType = 0 // 未知
+	SessionType_ST_Single SessionType = 1 // 单聊
+	SessionType_ST_Group  SessionType = 2 // 群聊
+)
+
+// Enum value maps for SessionType.
+var (
+	SessionType_name = map[int32]string{
+		0: "ST_UnKnow",
+		1: "ST_Single",
+		2: "ST_Group",
+	}
+	SessionType_value = map[string]int32{
+		"ST_UnKnow": 0,
+		"ST_Single": 1,
+		"ST_Group":  2,
+	}
+)
+
+func (x SessionType) Enum() *SessionType {
+	p := new(SessionType)
+	*p = x
+	return p
+}
+
+func (x SessionType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SessionType) Descriptor() protoreflect.EnumDescriptor {
+	return file_message_proto_enumTypes[0].Descriptor()
+}
+
+func (SessionType) Type() protoreflect.EnumType {
+	return &file_message_proto_enumTypes[0]
+}
+
+func (x SessionType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SessionType.Descriptor instead.
+func (SessionType) EnumDescriptor() ([]byte, []int) {
+	return file_message_proto_rawDescGZIP(), []int{0}
+}
+
+// 用户所发送内容的消息类型
+type MessageType int32
+
+const (
+	MessageType_MT_UnKnow  MessageType = 0 // 未知
+	MessageType_MT_Text    MessageType = 1 // 文本类型消息
+	MessageType_MT_Picture MessageType = 2 // 图片类型消息
+	MessageType_MT_Voice   MessageType = 3 // 语音类型消息
+)
+
+// Enum value maps for MessageType.
+var (
+	MessageType_name = map[int32]string{
+		0: "MT_UnKnow",
+		1: "MT_Text",
+		2: "MT_Picture",
+		3: "MT_Voice",
+	}
+	MessageType_value = map[string]int32{
+		"MT_UnKnow":  0,
+		"MT_Text":    1,
+		"MT_Picture": 2,
+		"MT_Voice":   3,
+	}
+)
+
+func (x MessageType) Enum() *MessageType {
+	p := new(MessageType)
+	*p = x
+	return p
+}
+
+func (x MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_message_proto_enumTypes[1].Descriptor()
+}
+
+func (MessageType) Type() protoreflect.EnumType {
+	return &file_message_proto_enumTypes[1]
+}
+
+func (x MessageType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MessageType.Descriptor instead.
+func (MessageType) EnumDescriptor() ([]byte, []int) {
+	return file_message_proto_rawDescGZIP(), []int{1}
+}
+
+// 所有 websocket 的消息类型
 type CmdType int32
 
 const (
-	CmdType_UnKnow    CmdType = 0 // 未知
-	CmdType_Login     CmdType = 1 // 连接注册，客户端向服务端发送，建立连接
-	CmdType_Heartbeat CmdType = 2 // 心跳，客户端向服务端发送，连接保活
-	CmdType_SYNC      CmdType = 3 // 离线消息同步，客户端向服务端发送，拉取离线消息
-	CmdType_ACK       CmdType = 4 // ACK 消息，回复
-	CmdType_Up        CmdType = 5 // 消息上行投递，指从客户端向服务端发送的消息
-	CmdType_Push      CmdType = 6 // 消息下行投递，指从服务端向客户端发送的消息
+	CmdType_CT_UnKnow    CmdType = 0 // 未知
+	CmdType_CT_Login     CmdType = 1 // 连接注册，客户端向服务端发送，建立连接
+	CmdType_CT_Heartbeat CmdType = 2 // 心跳，客户端向服务端发送，连接保活
+	CmdType_CT_Message   CmdType = 3 // 消息投递，可能是服务端发给客户端，也可能是客户端发给服务端
 )
 
 // Enum value maps for CmdType.
 var (
 	CmdType_name = map[int32]string{
-		0: "UnKnow",
-		1: "Login",
-		2: "Heartbeat",
-		3: "SYNC",
-		4: "ACK",
-		5: "Up",
-		6: "Push",
+		0: "CT_UnKnow",
+		1: "CT_Login",
+		2: "CT_Heartbeat",
+		3: "CT_Message",
 	}
 	CmdType_value = map[string]int32{
-		"UnKnow":    0,
-		"Login":     1,
-		"Heartbeat": 2,
-		"SYNC":      3,
-		"ACK":       4,
-		"Up":        5,
-		"Push":      6,
+		"CT_UnKnow":    0,
+		"CT_Login":     1,
+		"CT_Heartbeat": 2,
+		"CT_Message":   3,
 	}
 )
 
@@ -66,11 +160,11 @@ func (x CmdType) String() string {
 }
 
 func (CmdType) Descriptor() protoreflect.EnumDescriptor {
-	return file_message_proto_enumTypes[0].Descriptor()
+	return file_message_proto_enumTypes[2].Descriptor()
 }
 
 func (CmdType) Type() protoreflect.EnumType {
-	return &file_message_proto_enumTypes[0]
+	return &file_message_proto_enumTypes[2]
 }
 
 func (x CmdType) Number() protoreflect.EnumNumber {
@@ -79,21 +173,24 @@ func (x CmdType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CmdType.Descriptor instead.
 func (CmdType) EnumDescriptor() ([]byte, []int) {
-	return file_message_proto_rawDescGZIP(), []int{0}
+	return file_message_proto_rawDescGZIP(), []int{2}
 }
 
-// 顶层消息
-type CmdMsg struct {
+// 上行消息（客户端发送给服务端）顶层消息
+// 使用：
+// 客户端发送前：先组装出下层消息例如 HeartBeatMsg，序列化作为 Input 的 data 值，再填写 type 值，序列化 Input 发送给服务端
+// 服务端收到后：反序列化成 Input，根据 type 值调用不同类型 handler，在 handler 中将 data 解析成其他例如 LoginMsg 类型消息，再做处理
+type Input struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type CmdType `protobuf:"varint,1,opt,name=type,proto3,enum=pb.CmdType" json:"type,omitempty"` // 消息类型，根据不同消息类型，解析成下面不同的类型
+	Type CmdType `protobuf:"varint,1,opt,name=type,proto3,enum=pb.CmdType" json:"type,omitempty"` // 消息类型，根据不同消息类型，可以将 data 解析成下面其他类型
 	Data []byte  `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`                  // 数据
 }
 
-func (x *CmdMsg) Reset() {
-	*x = CmdMsg{}
+func (x *Input) Reset() {
+	*x = Input{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_message_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -101,13 +198,13 @@ func (x *CmdMsg) Reset() {
 	}
 }
 
-func (x *CmdMsg) String() string {
+func (x *Input) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CmdMsg) ProtoMessage() {}
+func (*Input) ProtoMessage() {}
 
-func (x *CmdMsg) ProtoReflect() protoreflect.Message {
+func (x *Input) ProtoReflect() protoreflect.Message {
 	mi := &file_message_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -119,19 +216,94 @@ func (x *CmdMsg) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CmdMsg.ProtoReflect.Descriptor instead.
-func (*CmdMsg) Descriptor() ([]byte, []int) {
+// Deprecated: Use Input.ProtoReflect.Descriptor instead.
+func (*Input) Descriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CmdMsg) GetType() CmdType {
+func (x *Input) GetType() CmdType {
 	if x != nil {
 		return x.Type
 	}
-	return CmdType_UnKnow
+	return CmdType_CT_UnKnow
 }
 
-func (x *CmdMsg) GetData() []byte {
+func (x *Input) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+// 下行消息（服务端发送给客户端）顶层消息
+// 使用：
+// 服务端发送前：组装出下层消息例如 Message，序列化作为 Output 的 data 值，再填写其他值，序列化 Output 发送给客户端
+// 客户端收到后：反序列化成 Output，根据 type 值调用不同类型 handler，在 handler 中将 data 解析成其他例如 Message 类型消息，再做处理
+type Output struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Type    CmdType `protobuf:"varint,1,opt,name=type,proto3,enum=pb.CmdType" json:"type,omitempty"` // 消息类型，根据不同的消息类型，可以将 data 解析成下面其他类型
+	Code    int32   `protobuf:"varint,2,opt,name=code,proto3" json:"code,omitempty"`                 // 错误码
+	CodeMsg string  `protobuf:"bytes,3,opt,name=CodeMsg,proto3" json:"CodeMsg,omitempty"`            // 错误码信息
+	Data    []byte  `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`                  // 数据
+}
+
+func (x *Output) Reset() {
+	*x = Output{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_message_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Output) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Output) ProtoMessage() {}
+
+func (x *Output) ProtoReflect() protoreflect.Message {
+	mi := &file_message_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Output.ProtoReflect.Descriptor instead.
+func (*Output) Descriptor() ([]byte, []int) {
+	return file_message_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Output) GetType() CmdType {
+	if x != nil {
+		return x.Type
+	}
+	return CmdType_CT_UnKnow
+}
+
+func (x *Output) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *Output) GetCodeMsg() string {
+	if x != nil {
+		return x.CodeMsg
+	}
+	return ""
+}
+
+func (x *Output) GetData() []byte {
 	if x != nil {
 		return x.Data
 	}
@@ -139,6 +311,7 @@ func (x *CmdMsg) GetData() []byte {
 }
 
 // 登录
+// 仅上行
 type LoginMsg struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -151,7 +324,7 @@ type LoginMsg struct {
 func (x *LoginMsg) Reset() {
 	*x = LoginMsg{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_message_proto_msgTypes[1]
+		mi := &file_message_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -164,7 +337,7 @@ func (x *LoginMsg) String() string {
 func (*LoginMsg) ProtoMessage() {}
 
 func (x *LoginMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[1]
+	mi := &file_message_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -177,7 +350,7 @@ func (x *LoginMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginMsg.ProtoReflect.Descriptor instead.
 func (*LoginMsg) Descriptor() ([]byte, []int) {
-	return file_message_proto_rawDescGZIP(), []int{1}
+	return file_message_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LoginMsg) GetUserId() uint64 {
@@ -195,6 +368,7 @@ func (x *LoginMsg) GetToken() []byte {
 }
 
 // 心跳
+// 仅上行
 type HeartBeatMsg struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -204,7 +378,7 @@ type HeartBeatMsg struct {
 func (x *HeartBeatMsg) Reset() {
 	*x = HeartBeatMsg{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_message_proto_msgTypes[2]
+		mi := &file_message_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -217,7 +391,7 @@ func (x *HeartBeatMsg) String() string {
 func (*HeartBeatMsg) ProtoMessage() {}
 
 func (x *HeartBeatMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[2]
+	mi := &file_message_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -230,57 +404,25 @@ func (x *HeartBeatMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartBeatMsg.ProtoReflect.Descriptor instead.
 func (*HeartBeatMsg) Descriptor() ([]byte, []int) {
-	return file_message_proto_rawDescGZIP(), []int{2}
-}
-
-// 离线消息同步
-type SyncMsg struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *SyncMsg) Reset() {
-	*x = SyncMsg{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_message_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SyncMsg) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SyncMsg) ProtoMessage() {}
-
-func (x *SyncMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SyncMsg.ProtoReflect.Descriptor instead.
-func (*SyncMsg) Descriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{3}
 }
 
-// ACK
-type ACKMsg struct {
+// 消息投递
+// 上行、下行
+type Message struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	SessionType SessionType `protobuf:"varint,1,opt,name=session_type,json=sessionType,proto3,enum=pb.SessionType" json:"session_type,omitempty"` // 会话类型 单聊、群聊
+	ReceiverId  uint64      `protobuf:"varint,2,opt,name=receiver_id,json=receiverId,proto3" json:"receiver_id,omitempty"`                        // 接收者id 用户id/群组id
+	SenderId    uint64      `protobuf:"varint,3,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`                              // 发送者id
+	MessageType MessageType `protobuf:"varint,4,opt,name=message_type,json=messageType,proto3,enum=pb.MessageType" json:"message_type,omitempty"` // 消息类型 文本、图片、语音
+	Content     []byte      `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`                                                 // 实际用户所发数据
 }
 
-func (x *ACKMsg) Reset() {
-	*x = ACKMsg{}
+func (x *Message) Reset() {
+	*x = Message{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_message_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -288,13 +430,13 @@ func (x *ACKMsg) Reset() {
 	}
 }
 
-func (x *ACKMsg) String() string {
+func (x *Message) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ACKMsg) ProtoMessage() {}
+func (*Message) ProtoMessage() {}
 
-func (x *ACKMsg) ProtoReflect() protoreflect.Message {
+func (x *Message) ProtoReflect() protoreflect.Message {
 	mi := &file_message_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -306,117 +448,40 @@ func (x *ACKMsg) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ACKMsg.ProtoReflect.Descriptor instead.
-func (*ACKMsg) Descriptor() ([]byte, []int) {
+// Deprecated: Use Message.ProtoReflect.Descriptor instead.
+func (*Message) Descriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{4}
 }
 
-// 上行消息
-type UpMsg struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	ClientId uint64 `protobuf:"varint,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	Content  []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"` // 实际数据
-}
-
-func (x *UpMsg) Reset() {
-	*x = UpMsg{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_message_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UpMsg) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpMsg) ProtoMessage() {}
-
-func (x *UpMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpMsg.ProtoReflect.Descriptor instead.
-func (*UpMsg) Descriptor() ([]byte, []int) {
-	return file_message_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpMsg) GetClientId() uint64 {
+func (x *Message) GetSessionType() SessionType {
 	if x != nil {
-		return x.ClientId
+		return x.SessionType
+	}
+	return SessionType_ST_UnKnow
+}
+
+func (x *Message) GetReceiverId() uint64 {
+	if x != nil {
+		return x.ReceiverId
 	}
 	return 0
 }
 
-func (x *UpMsg) GetContent() []byte {
+func (x *Message) GetSenderId() uint64 {
 	if x != nil {
-		return x.Content
-	}
-	return nil
-}
-
-// 下行消息
-type PushMsg struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	MsgId   uint64 `protobuf:"varint,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"` // 消息id
-	Content []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`           // 数据
-}
-
-func (x *PushMsg) Reset() {
-	*x = PushMsg{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_message_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *PushMsg) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PushMsg) ProtoMessage() {}
-
-func (x *PushMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PushMsg.ProtoReflect.Descriptor instead.
-func (*PushMsg) Descriptor() ([]byte, []int) {
-	return file_message_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PushMsg) GetMsgId() uint64 {
-	if x != nil {
-		return x.MsgId
+		return x.SenderId
 	}
 	return 0
 }
 
-func (x *PushMsg) GetContent() []byte {
+func (x *Message) GetMessageType() MessageType {
+	if x != nil {
+		return x.MessageType
+	}
+	return MessageType_MT_UnKnow
+}
+
+func (x *Message) GetContent() []byte {
 	if x != nil {
 		return x.Content
 	}
@@ -427,32 +492,50 @@ var File_message_proto protoreflect.FileDescriptor
 
 var file_message_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
-	0x02, 0x70, 0x62, 0x22, 0x3d, 0x0a, 0x06, 0x43, 0x6d, 0x64, 0x4d, 0x73, 0x67, 0x12, 0x1f, 0x0a,
-	0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0b, 0x2e, 0x70, 0x62,
-	0x2e, 0x43, 0x6d, 0x64, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12,
-	0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61,
-	0x74, 0x61, 0x22, 0x39, 0x0a, 0x08, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x4d, 0x73, 0x67, 0x12, 0x17,
-	0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52,
-	0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x0e, 0x0a,
-	0x0c, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x4d, 0x73, 0x67, 0x22, 0x09, 0x0a,
-	0x07, 0x53, 0x79, 0x6e, 0x63, 0x4d, 0x73, 0x67, 0x22, 0x08, 0x0a, 0x06, 0x41, 0x43, 0x4b, 0x4d,
-	0x73, 0x67, 0x22, 0x3e, 0x0a, 0x05, 0x55, 0x70, 0x4d, 0x73, 0x67, 0x12, 0x1b, 0x0a, 0x09, 0x63,
-	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08,
-	0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74,
-	0x65, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65,
-	0x6e, 0x74, 0x22, 0x3a, 0x0a, 0x07, 0x50, 0x75, 0x73, 0x68, 0x4d, 0x73, 0x67, 0x12, 0x15, 0x0a,
-	0x06, 0x6d, 0x73, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x6d,
-	0x73, 0x67, 0x49, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2a, 0x54,
-	0x0a, 0x07, 0x43, 0x6d, 0x64, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x55, 0x6e, 0x4b,
-	0x6e, 0x6f, 0x77, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x10, 0x01,
-	0x12, 0x0d, 0x0a, 0x09, 0x48, 0x65, 0x61, 0x72, 0x74, 0x62, 0x65, 0x61, 0x74, 0x10, 0x02, 0x12,
-	0x08, 0x0a, 0x04, 0x53, 0x59, 0x4e, 0x43, 0x10, 0x03, 0x12, 0x07, 0x0a, 0x03, 0x41, 0x43, 0x4b,
-	0x10, 0x04, 0x12, 0x06, 0x0a, 0x02, 0x55, 0x70, 0x10, 0x05, 0x12, 0x08, 0x0a, 0x04, 0x50, 0x75,
-	0x73, 0x68, 0x10, 0x06, 0x42, 0x18, 0x5a, 0x16, 0x47, 0x6f, 0x43, 0x68, 0x61, 0x74, 0x2f, 0x70,
-	0x6b, 0x67, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2f, 0x70, 0x62, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x02, 0x70, 0x62, 0x22, 0x3c, 0x0a, 0x05, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x1f, 0x0a, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0b, 0x2e, 0x70, 0x62, 0x2e,
+	0x43, 0x6d, 0x64, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74,
+	0x61, 0x22, 0x6b, 0x0a, 0x06, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x12, 0x1f, 0x0a, 0x04, 0x74,
+	0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0b, 0x2e, 0x70, 0x62, 0x2e, 0x43,
+	0x6d, 0x64, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04,
+	0x63, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65,
+	0x12, 0x18, 0x0a, 0x07, 0x43, 0x6f, 0x64, 0x65, 0x4d, 0x73, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x07, 0x43, 0x6f, 0x64, 0x65, 0x4d, 0x73, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61,
+	0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x39,
+	0x0a, 0x08, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x4d, 0x73, 0x67, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73,
+	0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73, 0x65,
+	0x72, 0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0c, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x0e, 0x0a, 0x0c, 0x48, 0x65, 0x61,
+	0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x4d, 0x73, 0x67, 0x22, 0xc9, 0x01, 0x0a, 0x07, 0x4d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x32, 0x0a, 0x0c, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
+	0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0f, 0x2e, 0x70, 0x62,
+	0x2e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x52, 0x0b, 0x73, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1f, 0x0a, 0x0b, 0x72, 0x65, 0x63,
+	0x65, 0x69, 0x76, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0a,
+	0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x72, 0x49, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x73, 0x65,
+	0x6e, 0x64, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x73,
+	0x65, 0x6e, 0x64, 0x65, 0x72, 0x49, 0x64, 0x12, 0x32, 0x0a, 0x0c, 0x6d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0f, 0x2e,
+	0x70, 0x62, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x52, 0x0b,
+	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x63,
+	0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x63, 0x6f,
+	0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2a, 0x39, 0x0a, 0x0b, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
+	0x54, 0x79, 0x70, 0x65, 0x12, 0x0d, 0x0a, 0x09, 0x53, 0x54, 0x5f, 0x55, 0x6e, 0x4b, 0x6e, 0x6f,
+	0x77, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x53, 0x54, 0x5f, 0x53, 0x69, 0x6e, 0x67, 0x6c, 0x65,
+	0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x53, 0x54, 0x5f, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x10, 0x02,
+	0x2a, 0x47, 0x0a, 0x0b, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12,
+	0x0d, 0x0a, 0x09, 0x4d, 0x54, 0x5f, 0x55, 0x6e, 0x4b, 0x6e, 0x6f, 0x77, 0x10, 0x00, 0x12, 0x0b,
+	0x0a, 0x07, 0x4d, 0x54, 0x5f, 0x54, 0x65, 0x78, 0x74, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4d,
+	0x54, 0x5f, 0x50, 0x69, 0x63, 0x74, 0x75, 0x72, 0x65, 0x10, 0x02, 0x12, 0x0c, 0x0a, 0x08, 0x4d,
+	0x54, 0x5f, 0x56, 0x6f, 0x69, 0x63, 0x65, 0x10, 0x03, 0x2a, 0x48, 0x0a, 0x07, 0x43, 0x6d, 0x64,
+	0x54, 0x79, 0x70, 0x65, 0x12, 0x0d, 0x0a, 0x09, 0x43, 0x54, 0x5f, 0x55, 0x6e, 0x4b, 0x6e, 0x6f,
+	0x77, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x43, 0x54, 0x5f, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x10,
+	0x01, 0x12, 0x10, 0x0a, 0x0c, 0x43, 0x54, 0x5f, 0x48, 0x65, 0x61, 0x72, 0x74, 0x62, 0x65, 0x61,
+	0x74, 0x10, 0x02, 0x12, 0x0e, 0x0a, 0x0a, 0x43, 0x54, 0x5f, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x10, 0x03, 0x42, 0x18, 0x5a, 0x16, 0x47, 0x6f, 0x43, 0x68, 0x61, 0x74, 0x2f, 0x70, 0x6b,
+	0x67, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -467,25 +550,28 @@ func file_message_proto_rawDescGZIP() []byte {
 	return file_message_proto_rawDescData
 }
 
-var file_message_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_message_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_message_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_message_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_message_proto_goTypes = []interface{}{
-	(CmdType)(0),         // 0: pb.CmdType
-	(*CmdMsg)(nil),       // 1: pb.CmdMsg
-	(*LoginMsg)(nil),     // 2: pb.LoginMsg
-	(*HeartBeatMsg)(nil), // 3: pb.HeartBeatMsg
-	(*SyncMsg)(nil),      // 4: pb.SyncMsg
-	(*ACKMsg)(nil),       // 5: pb.ACKMsg
-	(*UpMsg)(nil),        // 6: pb.UpMsg
-	(*PushMsg)(nil),      // 7: pb.PushMsg
+	(SessionType)(0),     // 0: pb.SessionType
+	(MessageType)(0),     // 1: pb.MessageType
+	(CmdType)(0),         // 2: pb.CmdType
+	(*Input)(nil),        // 3: pb.Input
+	(*Output)(nil),       // 4: pb.Output
+	(*LoginMsg)(nil),     // 5: pb.LoginMsg
+	(*HeartBeatMsg)(nil), // 6: pb.HeartBeatMsg
+	(*Message)(nil),      // 7: pb.Message
 }
 var file_message_proto_depIdxs = []int32{
-	0, // 0: pb.CmdMsg.type:type_name -> pb.CmdType
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: pb.Input.type:type_name -> pb.CmdType
+	2, // 1: pb.Output.type:type_name -> pb.CmdType
+	0, // 2: pb.Message.session_type:type_name -> pb.SessionType
+	1, // 3: pb.Message.message_type:type_name -> pb.MessageType
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_message_proto_init() }
@@ -495,7 +581,7 @@ func file_message_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_message_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CmdMsg); i {
+			switch v := v.(*Input); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -507,7 +593,7 @@ func file_message_proto_init() {
 			}
 		}
 		file_message_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LoginMsg); i {
+			switch v := v.(*Output); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -519,7 +605,7 @@ func file_message_proto_init() {
 			}
 		}
 		file_message_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HeartBeatMsg); i {
+			switch v := v.(*LoginMsg); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -531,7 +617,7 @@ func file_message_proto_init() {
 			}
 		}
 		file_message_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SyncMsg); i {
+			switch v := v.(*HeartBeatMsg); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -543,31 +629,7 @@ func file_message_proto_init() {
 			}
 		}
 		file_message_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ACKMsg); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_message_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpMsg); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_message_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PushMsg); i {
+			switch v := v.(*Message); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -584,8 +646,8 @@ func file_message_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_message_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   7,
+			NumEnums:      3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

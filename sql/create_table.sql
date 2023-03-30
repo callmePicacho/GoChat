@@ -50,3 +50,18 @@ CREATE TABLE `group_user`
     KEY `idx_user_id` (`user_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
+
+DROP TABLE IF EXISTS `message`;
+CREATE TABLE `message`
+(
+    `id`           bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `user_id`      bigint(20) unsigned NOT NULL COMMENT '用户id，发送者id',
+    `session_type` tinyint(4)          NOT NULL COMMENT '聊天类型，群聊/单聊',
+    `receiver_id`  bigint(20) unsigned NOT NULL COMMENT '接收者id，群聊id/用户id',
+    `message_type` tinyint(4)          NOT NULL COMMENT '消息类型,语言、文字、图片',
+    `content`      blob                NOT NULL COMMENT '消息内容',
+    `create_time`  datetime            NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`  datetime            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

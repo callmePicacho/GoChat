@@ -1,11 +1,13 @@
 package ws
 
 import (
+	"GoChat/common"
+	"GoChat/config"
 	"GoChat/lib/cache"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/util"
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"sync"
 )
 
@@ -24,7 +26,8 @@ func (r *Req) Login() {
 	r.LoginMutex.Lock()
 	defer r.LoginMutex.Unlock()
 
-	// 检查用户是否已登录  TODO 还需要验证 Redis 中是否存在用户数据并做相应处理
+	// 检查用户是否已登录 只能防止同一个连接多次调用 Login
+	// TODO 要防止多个连接使用相同 user_id + token 进行 Login，还需要验证 Redis 中是否存在用户数据并做相应处理
 	if r.conn.GetUserId() != 0 {
 		fmt.Println("[用户登录] 用户已登录")
 		return
@@ -51,10 +54,10 @@ func (r *Req) Login() {
 	// 设置 user_id
 	r.conn.SetUserId(loginMsg.UserId)
 
-	// Redis 存储用户数据 k: userId,  v: 网关地址
+	// Redis 存储用户数据 k: userId,  v: grpc地址，方便用户能直接通过这个地址进行 rpc 方法调用
 	userId := r.conn.GetUserId()
-	serverAddr := r.conn.server.Addr()
-	err = cache.SetUserOnline(userId, serverAddr)
+	grpcServerAddr := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.RPCPort)
+	err = cache.SetUserOnline(userId, grpcServerAddr)
 	if err != nil {
 		fmt.Println("[用户登录] 系统错误")
 		return
@@ -69,11 +72,7 @@ func (r *Req) Login() {
 	}
 
 	// 回复ACK
-	msg := &pb.CmdMsg{
-		Type: pb.CmdType_Login,
-		Data: nil,
-	}
-	bytes, err := proto.Marshal(msg)
+	bytes, err := GetOutputMsg(pb.CmdType_CT_Login, int32(common.OK), nil)
 	if err != nil {
 		fmt.Println("[用户登录] proto.Marshal err:", err)
 		return
@@ -84,14 +83,54 @@ func (r *Req) Login() {
 
 func (r *Req) HeartBeat() {
 	// 回复心跳
-	msg := &pb.CmdMsg{
-		Type: pb.CmdType_Heartbeat,
-		Data: nil,
-	}
-	bytes, err := proto.Marshal(msg)
+	bytes, err := GetOutputMsg(pb.CmdType_CT_Heartbeat, int32(common.OK), nil)
 	if err != nil {
 		fmt.Println("[心跳] proto.Marshal err:", err)
 		return
 	}
 	r.conn.SendMsg(r.conn.UserId, bytes)
+}
+
+// MessageHandler 消息处理，处理客户端发送给服务端的消息
+// A 发送消息给服务端，服务端收到消息处理后发给 B
+// 包括：单聊、群聊
+func (r *Req) MessageHandler() {
+	// 消息解析 proto string -> struct
+	msg := new(pb.Message)
+	err := proto.Unmarshal(r.data, msg)
+	if err != nil {
+		fmt.Println("[消息处理] unmarshal error,err:", err)
+		return
+	}
+
+	if msg.SenderId != r.conn.GetUserId() {
+		fmt.Println("[消息处理] 发送者有误")
+		return
+	}
+
+	if msg.ReceiverId == r.conn.GetUserId() {
+		fmt.Println("[消息处理] 接收者有误")
+		return
+	}
+
+	// 得到要转发给 B 的消息
+	bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), r.data)
+	if err != nil {
+		fmt.Println("[消息处理] Marshal error,err:", err)
+		return
+	}
+
+	// 单聊、群聊（写扩散）
+	switch msg.SessionType {
+	case pb.SessionType_ST_Single:
+		// 消息本身 和 要发送的消息
+		err = SendToUser(msg, bytes)
+	case pb.SessionType_ST_Group:
+
+	default:
+		fmt.Println("[消息处理] 会话类型错误")
+		return
+	}
+
+	// TODO 组装回复 A 的 ACK
 }

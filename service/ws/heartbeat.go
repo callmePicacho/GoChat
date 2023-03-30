@@ -44,7 +44,7 @@ func (h *HeartbeatChecker) Stop() {
 
 // check 超时检测
 func (h *HeartbeatChecker) check() {
-	fmt.Println("heart check start...")
+	fmt.Println("heart check start...", time.Now().Format("2006-01-02 15:04:05"))
 	// 未验证的连接
 	conns := h.server.GetConnUnLoginAll()
 	for _, conn := range conns {

@@ -17,7 +17,7 @@ const (
 
 // GetErrorMessage 根据错误码 获取错误信息
 func GetErrorMessage(code uint32, message string) string {
-	var codeMessage string
+	codeMessage := message
 	codeMap := map[uint32]string{
 		OK:                 "Success",
 		NotLoggedIn:        "未登录",
@@ -40,8 +40,6 @@ func GetErrorMessage(code uint32, message string) string {
 		} else {
 			codeMessage = "未定义错误类型!"
 		}
-	} else {
-		codeMessage = message
 	}
 
 	return codeMessage

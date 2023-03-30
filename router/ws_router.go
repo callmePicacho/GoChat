@@ -1,11 +1,17 @@
 package router
 
 import (
+	"GoChat/config"
 	"GoChat/service/ws"
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -19,13 +25,13 @@ var upgrader = websocket.Upgrader{
 
 // WSRouter websocket 路由
 func WSRouter() {
-	server := ws.NewServer()
+	server := ws.GetServer()
 
 	// 开启worker工作池
 	server.StartWorkerPool()
 
 	// 开启心跳超时检测
-	checker := ws.NewHeartbeatChecker(10*time.Second, server)
+	checker := ws.NewHeartbeatChecker(time.Second*time.Duration(config.GlobalConfig.App.HeartbeatInterval), server)
 	go checker.Start()
 
 	r := gin.Default()
@@ -45,5 +51,30 @@ func WSRouter() {
 		go conn.Start()
 	})
 
-	r.Run(server.Addr())
+	srv := &http.Server{
+		Addr:    server.Addr(),
+		Handler: r,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	// 关闭服务
+	server.Stop()
+
+	// 5s 超时
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown: ", err)
+	}
+
+	log.Println("Server exiting")
 }

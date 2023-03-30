@@ -3,9 +3,9 @@ package main
 import (
 	"GoChat/pkg/protocol/pb"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 	"github.com/valyala/fastjson"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -26,8 +26,6 @@ func main() {
 
 	// 连接 websocket 服务
 	client.Start()
-
-	select {}
 }
 
 func (c *Client) Start() {
@@ -39,7 +37,6 @@ func (c *Client) Start() {
 	c.conn = conn
 
 	fmt.Println("与 websocket 建立连接")
-	time.Sleep(time.Second)
 	// 向 websocket 发送登录请求
 	c.Login()
 
@@ -47,14 +44,41 @@ func (c *Client) Start() {
 	go c.Heartbeat()
 
 	// 收取消息
-	c.Receive()
+	go c.Receive()
+
+	time.Sleep(time.Second)
+
+	var msg string
+	var receiverId uint64
+	for {
+		fmt.Print("发送消息: ")
+		_, err = fmt.Scanln(&msg)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Print("接收人id：")
+		_, err = fmt.Scanln(&receiverId)
+		if err != nil {
+			panic(err)
+		}
+		message := &pb.Message{
+			SessionType: pb.SessionType_ST_Single,
+			ReceiverId:  receiverId,
+			SenderId:    c.userId,
+			MessageType: pb.MessageType_MT_Text,
+			Content:     []byte(msg),
+		}
+
+		c.SendMsg(pb.CmdType_CT_Message, message)
+		time.Sleep(time.Second)
+	}
 }
 
 func (c *Client) Heartbeat() {
 	//  2min 一次
 	ticker := time.NewTicker(time.Second * 2 * 60)
 	for range ticker.C {
-		c.SendMsg(pb.CmdType_Heartbeat, nil)
+		c.SendMsg(pb.CmdType_CT_Heartbeat, nil)
 		fmt.Println("发送心跳", time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
@@ -71,25 +95,27 @@ func (c *Client) Receive() {
 
 // HandlerMessage 客户端消息处理
 func (c *Client) HandlerMessage(bytes []byte) {
-	var msg pb.CmdMsg
-	err := proto.Unmarshal(bytes, &msg)
+	msg := new(pb.Output)
+	err := proto.Unmarshal(bytes, msg)
 	if err != nil {
 		panic(err)
 	}
 
+	fmt.Println("收到消息：", msg)
+
 	switch msg.Type {
-	case pb.CmdType_Login: // 登录
+	case pb.CmdType_CT_Login: // 登录
 		fmt.Println("收到登录ACK", time.Now().Format("2006-01-02 15:04:05"))
-	case pb.CmdType_Heartbeat: // 心跳
+	case pb.CmdType_CT_Heartbeat: // 心跳
 		fmt.Println("收到心跳ACK", time.Now().Format("2006-01-02 15:04:05"))
-	case pb.CmdType_SYNC: // 离线消息同步
-
-	case pb.CmdType_ACK: // 消息ACK
-
-	case pb.CmdType_Up: // 上行消息
-
-	case pb.CmdType_Push: // 服务端不可能收到服务端发送的下行消息
-		fmt.Println("消息类型错误")
+	case pb.CmdType_CT_Message:
+		message := new(pb.Message)
+		err = proto.Unmarshal(msg.Data, message)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("收到消息内容：", string(message.GetContent()))
+		fmt.Println("收到消息", message.String(), time.Now().Format("2006-01-02 15:04:05"))
 	default:
 		fmt.Println("未知消息类型")
 	}
@@ -103,13 +129,13 @@ func (c *Client) Login() {
 		UserId: c.userId,
 		Token:  []byte(c.token),
 	}
-	c.SendMsg(pb.CmdType_Login, loginMsg)
+	c.SendMsg(pb.CmdType_CT_Login, loginMsg)
 }
 
 // SendMsg 客户端向服务端发送上行消息
 func (c *Client) SendMsg(cmdType pb.CmdType, msg proto.Message) {
 	// 组装顶层数据
-	cmdMsg := &pb.CmdMsg{
+	cmdMsg := &pb.Input{
 		Type: cmdType,
 		Data: nil,
 	}

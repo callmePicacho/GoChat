@@ -27,15 +27,16 @@ type Configuration struct {
 
 	// 应用程序配置
 	App struct {
-		Salt             string `mapstructure:"salt"`                  // 密码加盐
-		Node             int    `mapstructure:"node"`                  // 雪花算法节点 ID
-		IP               string `mapstructure:"ip"`                    // 应用程序 IP 地址
-		HTTPServerPort   string `mapstructure:"http_server_port"`      // HTTP 服务器端口
-		WebsocketPort    string `mapstructure:"websocket_server_port"` // WebSocket 服务器端口
-		RPCPort          string `mapstructure:"rpc-port"`              // RPC 服务器端口
-		WorkerPoolSize   uint32 `mapstructure:"worker_pool_size"`      // 业务 worker 队列数量
-		MaxWorkerTask    int    `mapstructure:"max_worker_task"`       // 业务 worker 对应负责的任务队列最大任务存储数量
-		HeartbeatTimeout int    `mapstructure:"heartbeattime"`         // 心跳超时时间（秒）
+		Salt              string `mapstructure:"salt"`                  // 密码加盐
+		Node              int    `mapstructure:"node"`                  // 雪花算法节点 ID
+		IP                string `mapstructure:"ip"`                    // 应用程序 IP 地址
+		HTTPServerPort    string `mapstructure:"http_server_port"`      // HTTP 服务器端口
+		WebsocketPort     string `mapstructure:"websocket_server_port"` // WebSocket 服务器端口
+		RPCPort           string `mapstructure:"rpc-port"`              // RPC 服务器端口
+		WorkerPoolSize    uint32 `mapstructure:"worker_pool_size"`      // 业务 worker 队列数量
+		MaxWorkerTask     int    `mapstructure:"max_worker_task"`       // 业务 worker 对应负责的任务队列最大任务存储数量
+		HeartbeatTimeout  int    `mapstructure:"heartbeattime"`         // 心跳超时时间（秒）
+		HeartbeatInterval int    `mapstructure:"heartbeatInterval"`     // 超时连接检测间隔（秒）
 	} `mapstructure:"app"`
 }
 

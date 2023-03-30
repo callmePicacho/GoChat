@@ -1,0 +1,15 @@
+syntax = "proto3";
+package pb;
+option go_package = "GoChat/pkg/protocol/pb";
+
+import "google/protobuf/empty.proto";
+
+service Connect {
+  // 消息投递
+  rpc DeliverMessage (DeliverMessageReq) returns (google.protobuf.Empty);
+}
+
+message DeliverMessageReq {
+  uint64 receiver_id = 1;   //  消息接收者
+  bytes data = 2;  // 要投递的消息
+}

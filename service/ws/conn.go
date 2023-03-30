@@ -5,8 +5,8 @@ import (
 	"GoChat/lib/cache"
 	"GoChat/pkg/protocol/pb"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 	"sync"
 	"time"
 )
@@ -74,38 +74,32 @@ func (c *Conn) StartReader() {
 func (c *Conn) HandlerMessage(bytes []byte) {
 	// TODO 所有错误都需要写回给客户端
 	// 消息解析 proto string -> struct
-	msg := new(pb.CmdMsg)
-	err := proto.Unmarshal(bytes, msg)
+	input := new(pb.Input)
+	err := proto.Unmarshal(bytes, input)
 	if err != nil {
 		fmt.Println("unmarshal error", err)
 		return
 	}
-	fmt.Println("收到消息：", msg)
+	fmt.Println("收到消息：", input)
 
 	// 对未登录用户进行拦截
-	if msg.Type != pb.CmdType_Login && c.GetUserId() == 0 {
+	if input.Type != pb.CmdType_CT_Login && c.GetUserId() == 0 {
 		return
 	}
 
 	req := &Req{
 		conn: c,
-		data: msg.Data,
+		data: input.Data,
 		f:    nil,
 	}
 
-	switch msg.Type {
-	case pb.CmdType_Login: // 登录
+	switch input.Type {
+	case pb.CmdType_CT_Login: // 登录
 		req.f = req.Login
-	case pb.CmdType_Heartbeat: // 心跳
+	case pb.CmdType_CT_Heartbeat: // 心跳
 		req.f = req.HeartBeat
-	case pb.CmdType_SYNC: // 离线消息同步
-
-	case pb.CmdType_ACK: // 消息ACK，服务端收到的 ACK 是
-
-	case pb.CmdType_Up: // 上行消息
-
-	case pb.CmdType_Push: // 服务端不可能收到服务端发送的下行消息
-		fmt.Println("消息类型错误")
+	case pb.CmdType_CT_Message: // 上行消息
+		req.f = req.MessageHandler
 	default:
 		fmt.Println("未知消息类型")
 	}
@@ -133,9 +127,8 @@ func (c *Conn) SendMsg(userId uint64, bytes []byte) {
 	}
 
 	// 根据 userId 找到对应 socket
-	conn, err := c.server.GetConn(userId)
-	if err != nil {
-		fmt.Println(err)
+	conn := c.server.GetConn(userId)
+	if conn == nil {
 		return
 	}
 
@@ -174,7 +167,7 @@ func (c *Conn) Stop() {
 	}
 
 	// 关闭 socket 连接
-	c.Socket.Close()
+	_ = c.Socket.Close()
 	// 关闭 writer
 	c.exitCh <- struct{}{}
 

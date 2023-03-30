@@ -2,10 +2,14 @@ package ws
 
 import (
 	"GoChat/config"
-	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
+)
+
+var (
+	ConnManager *Server
+	once        sync.Once
 )
 
 // Server 连接管理
@@ -21,14 +25,43 @@ type Server struct {
 	taskQueue         []chan *Req        // 工作池
 }
 
-func NewServer() *Server {
-	return &Server{
-		IP:             config.GlobalConfig.App.IP,
-		Port:           config.GlobalConfig.App.WebsocketPort,
-		connUnLoginMap: make(map[*Conn]struct{}, 10000),                           // 提前预留大小
-		connMap:        make(map[uint64]*Conn, 10000),                             // 提前预留大小
-		taskQueue:      make([]chan *Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
+func GetServer() *Server {
+	once.Do(func() {
+		ConnManager = &Server{
+			IP:             config.GlobalConfig.App.IP,
+			Port:           config.GlobalConfig.App.WebsocketPort,
+			connUnLoginMap: make(map[*Conn]struct{}, 10000),                           // 提前预留大小
+			connMap:        make(map[uint64]*Conn, 10000),                             // 提前预留大小
+			taskQueue:      make([]chan *Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
+		}
+	})
+	return ConnManager
+}
+
+// Stop 关闭服务
+func (cm *Server) Stop() {
+	fmt.Println("server stop ...")
+	var wg sync.WaitGroup
+	connAll := cm.GetConnAll()
+	for _, conn := range connAll {
+		wg.Add(1)
+		conn := conn
+		go func() {
+			defer wg.Done()
+			conn.Stop()
+		}()
 	}
+
+	unLoginAll := cm.GetConnUnLoginAll()
+	for _, conn := range unLoginAll {
+		wg.Add(1)
+		conn := conn
+		go func() {
+			defer wg.Done()
+			conn.Stop()
+		}()
+	}
+	wg.Wait()
 }
 
 // AddConnUnLogin 添加连接
@@ -66,7 +99,7 @@ func (cm *Server) GetConnUnLoginAll() []*Conn {
 	defer cm.connUnLoginWMutex.RUnlock()
 
 	conns := make([]*Conn, 0, len(cm.connUnLoginMap))
-	for conn, _ := range cm.connUnLoginMap {
+	for conn := range cm.connUnLoginMap {
 		conns = append(conns, conn)
 	}
 	return conns
@@ -92,15 +125,15 @@ func (cm *Server) RemoveConn(conn *Conn) {
 }
 
 // GetConn 根据userid获取相应的连接
-func (cm *Server) GetConn(userId uint64) (*Conn, error) {
+func (cm *Server) GetConn(userId uint64) *Conn {
 	cm.connRWMutex.RLock()
 	defer cm.connRWMutex.RUnlock()
 
 	if conn, ok := cm.connMap[userId]; ok {
-		return conn, nil
+		return conn
 	}
 
-	return nil, errors.New("connection not found")
+	return nil
 }
 
 // GetConnAll 获取全部连接
