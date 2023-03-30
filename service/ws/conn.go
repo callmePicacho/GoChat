@@ -29,7 +29,7 @@ type Conn struct {
 }
 
 func NewConnection(server *Server, wsConn *websocket.Conn) *Conn {
-	conn := &Conn{
+	return &Conn{
 		server:            server,
 		UserId:            0, // 此时用户未登录， userID 为 0
 		Socket:            wsConn,
@@ -38,9 +38,6 @@ func NewConnection(server *Server, wsConn *websocket.Conn) *Conn {
 		exitCh:            make(chan struct{}, 1),
 		lastHeartBeatTime: time.Now(), // 刚连接时初始化，避免正好遇到清理执行，如果连接没有后续操作，将会在下次被心跳检测踢出
 	}
-	// 将 conn 加入到 map 中
-	conn.server.AddConnUnLogin(conn)
-	return conn
 }
 
 func (c *Conn) Start() {
@@ -172,13 +169,9 @@ func (c *Conn) Stop() {
 	c.exitCh <- struct{}{}
 
 	// 将连接从connMap中移除
-	if c.GetUserId() == 0 {
-		c.server.RemoveConnUnLogin(c)
-	} else {
-		c.server.RemoveConn(c)
-		// 用户下线
-		_ = cache.DelUserOnline(c.GetUserId())
-	}
+	c.server.RemoveConn(c.GetUserId())
+	// 用户下线
+	_ = cache.DelUserOnline(c.GetUserId())
 
 	c.isClose = true
 
@@ -186,7 +179,7 @@ func (c *Conn) Stop() {
 	close(c.exitCh)
 	close(c.sendCh)
 
-	fmt.Println("Conn Stop() ... UserId = ", c.UserId)
+	fmt.Println("Conn Stop() ... UserId = ", c.GetUserId())
 }
 
 // KeepLive 更新心跳
@@ -203,7 +196,10 @@ func (c *Conn) IsAlive() bool {
 	now := time.Now()
 
 	c.heartMutex.Lock()
+	c.isCloseMutex.RLock()
+	defer c.isCloseMutex.RUnlock()
 	defer c.heartMutex.Unlock()
+
 	if c.isClose || now.Sub(c.lastHeartBeatTime) > time.Duration(config.GlobalConfig.App.HeartbeatTimeout)*time.Second {
 		return false
 	}

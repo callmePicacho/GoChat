@@ -1,13 +1,17 @@
 package router
 
 import (
+	"GoChat/config"
 	"GoChat/pkg/middlewares"
 	"GoChat/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
 )
 
 // HTTPRouter http 路由
-func HTTPRouter() *gin.Engine {
+func HTTPRouter() {
 	r := gin.Default()
 
 	// 用户注册
@@ -28,5 +32,8 @@ func HTTPRouter() *gin.Engine {
 		auth.GET("/group_user/list", service.GroupUserList)
 	}
 
-	return r
+	httpAddr := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.HTTPServerPort)
+	if err := r.Run(httpAddr); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
+	}
 }

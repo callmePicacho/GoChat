@@ -16,23 +16,14 @@ var (
 // 1. 连接管理
 // 2. 工作队列
 type Server struct {
-	IP                string
-	Port              string
-	connUnLoginMap    map[*Conn]struct{} // 还未验证连接，调用 /ws 的 websocket 连接
-	connUnLoginWMutex sync.RWMutex       // 还未验证连接读写锁
-	connMap           map[uint64]*Conn   // 验证通过的用户连接，通过验证将会把 conn 从 connUnLoginMap 移到 connMap 中 k-用户userid v-连接
-	connRWMutex       sync.RWMutex       // 验证通过连接读写锁
-	taskQueue         []chan *Req        // 工作池
+	connMap   sync.Map    // 登录的用户连接 k-用户userid v-连接
+	taskQueue []chan *Req // 工作池
 }
 
 func GetServer() *Server {
 	once.Do(func() {
 		ConnManager = &Server{
-			IP:             config.GlobalConfig.App.IP,
-			Port:           config.GlobalConfig.App.WebsocketPort,
-			connUnLoginMap: make(map[*Conn]struct{}, 10000),                           // 提前预留大小
-			connMap:        make(map[uint64]*Conn, 10000),                             // 提前预留大小
-			taskQueue:      make([]chan *Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
+			taskQueue: make([]chan *Req, config.GlobalConfig.App.WorkerPoolSize), // 初始worker队列中，worker个数
 		}
 	})
 	return ConnManager
@@ -51,100 +42,38 @@ func (cm *Server) Stop() {
 			conn.Stop()
 		}()
 	}
-
-	unLoginAll := cm.GetConnUnLoginAll()
-	for _, conn := range unLoginAll {
-		wg.Add(1)
-		conn := conn
-		go func() {
-			defer wg.Done()
-			conn.Stop()
-		}()
-	}
 	wg.Wait()
 }
 
-// AddConnUnLogin 添加连接
-func (cm *Server) AddConnUnLogin(conn *Conn) {
-	cm.connUnLoginWMutex.Lock()
-	defer cm.connUnLoginWMutex.Unlock()
-
-	cm.connUnLoginMap[conn] = struct{}{}
-	fmt.Printf("connection add to Server successfully: connUnLogin num = %d \n", len(cm.connUnLoginMap))
-}
-
-// RemoveConnUnLogin 删除连接
-func (cm *Server) RemoveConnUnLogin(conn *Conn) {
-	cm.connUnLoginWMutex.Lock()
-	defer cm.connUnLoginWMutex.Unlock()
-
-	delete(cm.connUnLoginMap, conn)
-
-	fmt.Println("connection Remove UserID=", conn.UserId, " successfully: connUnLogin num = ", len(cm.connUnLoginMap))
-}
-
-// InConnUnLogin 判断 conn 是否存在 unlogin map 中
-func (cm *Server) InConnUnLogin(conn *Conn) bool {
-	cm.connUnLoginWMutex.RLock()
-	defer cm.connUnLoginWMutex.RUnlock()
-
-	_, ok := cm.connUnLoginMap[conn]
-
-	return ok
-}
-
-// GetConnUnLoginAll 获取全部未验证的连接
-func (cm *Server) GetConnUnLoginAll() []*Conn {
-	cm.connUnLoginWMutex.RLock()
-	defer cm.connUnLoginWMutex.RUnlock()
-
-	conns := make([]*Conn, 0, len(cm.connUnLoginMap))
-	for conn := range cm.connUnLoginMap {
-		conns = append(conns, conn)
-	}
-	return conns
-}
-
 // AddConn 添加连接
-func (cm *Server) AddConn(conn *Conn) {
-	cm.connRWMutex.Lock()
-	defer cm.connRWMutex.Unlock()
-
-	cm.connMap[conn.UserId] = conn
-	fmt.Printf("connection UserId=%d add to Server connMap successfully: conn num = %d \n", conn.UserId, len(cm.connMap))
+func (cm *Server) AddConn(userId uint64, conn *Conn) {
+	cm.connMap.Store(userId, conn)
+	fmt.Printf("connection UserId=%d add to Server\n", userId)
 }
 
 // RemoveConn 删除连接
-func (cm *Server) RemoveConn(conn *Conn) {
-	cm.connRWMutex.Lock()
-	defer cm.connRWMutex.Unlock()
-
-	delete(cm.connMap, conn.UserId)
-
-	fmt.Println("connection Remove UserID=", conn.UserId, " successfully: conn num = ", len(cm.connMap))
+func (cm *Server) RemoveConn(userId uint64) {
+	cm.connMap.Delete(userId)
+	fmt.Printf("connection UserId=%d remove from Server\n", userId)
 }
 
 // GetConn 根据userid获取相应的连接
 func (cm *Server) GetConn(userId uint64) *Conn {
-	cm.connRWMutex.RLock()
-	defer cm.connRWMutex.RUnlock()
-
-	if conn, ok := cm.connMap[userId]; ok {
-		return conn
+	value, ok := cm.connMap.Load(userId)
+	if ok {
+		return value.(*Conn)
 	}
-
 	return nil
 }
 
 // GetConnAll 获取全部连接
 func (cm *Server) GetConnAll() []*Conn {
-	cm.connRWMutex.RLock()
-	defer cm.connRWMutex.RUnlock()
-
-	conns := make([]*Conn, 0, len(cm.connMap))
-	for _, conn := range cm.connMap {
+	conns := make([]*Conn, 0)
+	cm.connMap.Range(func(key, value interface{}) bool {
+		conn := value.(*Conn)
 		conns = append(conns, conn)
-	}
+		return true
+	})
 	return conns
 }
 
@@ -181,9 +110,4 @@ func (cm *Server) SendMsgToTaskQueue(req *Req) {
 	} else {
 		go req.f()
 	}
-}
-
-// Addr 获取网关地址
-func (cm *Server) Addr() string {
-	return fmt.Sprintf("%s:%s", cm.IP, cm.Port)
 }

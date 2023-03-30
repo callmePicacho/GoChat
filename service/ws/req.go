@@ -8,7 +8,6 @@ import (
 	"GoChat/pkg/util"
 	"fmt"
 	"google.golang.org/protobuf/proto"
-	"sync"
 )
 
 // Handler 路由函数
@@ -16,15 +15,12 @@ type Handler func()
 
 // Req 请求
 type Req struct {
-	conn       *Conn   // 连接
-	data       []byte  // 客户端发送的请求数据
-	f          Handler // 该请求需要执行的路由函数
-	LoginMutex sync.Mutex
+	conn *Conn   // 连接
+	data []byte  // 客户端发送的请求数据
+	f    Handler // 该请求需要执行的路由函数
 }
 
 func (r *Req) Login() {
-	r.LoginMutex.Lock()
-	defer r.LoginMutex.Unlock()
 
 	// 检查用户是否已登录 只能防止同一个连接多次调用 Login
 	// TODO 要防止多个连接使用相同 user_id + token 进行 Login，还需要验证 Redis 中是否存在用户数据并做相应处理
@@ -55,20 +51,11 @@ func (r *Req) Login() {
 	r.conn.SetUserId(loginMsg.UserId)
 
 	// Redis 存储用户数据 k: userId,  v: grpc地址，方便用户能直接通过这个地址进行 rpc 方法调用
-	userId := r.conn.GetUserId()
 	grpcServerAddr := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.RPCPort)
-	err = cache.SetUserOnline(userId, grpcServerAddr)
+	err = cache.SetUserOnline(loginMsg.UserId, grpcServerAddr)
 	if err != nil {
 		fmt.Println("[用户登录] 系统错误")
 		return
-	}
-
-	// 转换 user_id 所在 map
-	if r.conn.server.InConnUnLogin(r.conn) {
-		// 从 connUnLogin 中删除
-		r.conn.server.RemoveConnUnLogin(r.conn)
-		// 加入到 connMap 中
-		r.conn.server.AddConn(r.conn)
 	}
 
 	// 回复ACK
@@ -79,6 +66,9 @@ func (r *Req) Login() {
 	}
 
 	r.conn.SendMsg(loginMsg.UserId, bytes)
+
+	// 加入到 connMap 中
+	r.conn.server.AddConn(loginMsg.UserId, r.conn)
 }
 
 func (r *Req) HeartBeat() {
@@ -88,7 +78,7 @@ func (r *Req) HeartBeat() {
 		fmt.Println("[心跳] proto.Marshal err:", err)
 		return
 	}
-	r.conn.SendMsg(r.conn.UserId, bytes)
+	r.conn.SendMsg(r.conn.GetUserId(), bytes)
 }
 
 // MessageHandler 消息处理，处理客户端发送给服务端的消息

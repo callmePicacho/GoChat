@@ -52,7 +52,7 @@ func WSRouter() {
 	})
 
 	srv := &http.Server{
-		Addr:    server.Addr(),
+		Addr:    fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.WebsocketPort),
 		Handler: r,
 	}
 
