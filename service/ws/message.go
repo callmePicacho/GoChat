@@ -66,6 +66,8 @@ func SendToUser(msg *pb.Message, bytes []byte) error {
 		return nil
 	}
 
+	fmt.Println("[消息处理] 用户在线，rpcAddr:", rpcAddr)
+
 	// 查询是否在本地
 	conn := ConnManager.GetConn(msg.ReceiverId)
 	if conn != nil {
@@ -79,7 +81,7 @@ func SendToUser(msg *pb.Message, bytes []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err = rpc.GetServerClient().DeliverMessage(ctx, &pb.DeliverMessageReq{
+	_, err = rpc.GetServerClient(rpcAddr).DeliverMessage(ctx, &pb.DeliverMessageReq{
 		ReceiverId: msg.ReceiverId,
 		Data:       bytes,
 	})

@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+const (
+	httpAddr      = "http://localhost:9090"
+	websocketAddr = "ws://localhost:9091"
+)
+
 type Client struct {
 	conn   *websocket.Conn
 	token  string
@@ -30,7 +35,7 @@ func main() {
 
 func (c *Client) Start() {
 	// 连接 websocket
-	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:9091/ws", http.Header{})
+	conn, _, err := websocket.DefaultDialer.Dial(websocketAddr+"/ws", http.Header{})
 	if err != nil {
 		panic(err)
 	}
@@ -174,7 +179,7 @@ func Login() *Client {
 	data.Set("password", password)
 
 	// 向服务器发送 POST 请求
-	resp, err := http.PostForm("http://localhost:9090/login", data)
+	resp, err := http.PostForm(httpAddr+"/login", data)
 	if err != nil {
 		fmt.Println("Error sending HTTP request:", err)
 		panic(err)
