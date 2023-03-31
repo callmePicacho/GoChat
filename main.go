@@ -3,15 +3,19 @@ package main
 import (
 	"GoChat/config"
 	"GoChat/pkg/db"
+	"GoChat/pkg/etcd"
 	"GoChat/router"
 	"GoChat/service/rpc_server"
 )
 
 func main() {
 	// 初始化
-	config.InitConfig()
+	config.InitConfig("./app.yaml")
 	db.InitMySQL(config.GlobalConfig.MySQL.DNS)
 	db.InitRedis(config.GlobalConfig.Redis.Addr, config.GlobalConfig.Redis.Password)
+
+	// 初始化服务注册发现
+	go etcd.InitETCD()
 
 	// 启动 http 服务
 	go router.HTTPRouter()

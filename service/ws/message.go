@@ -94,6 +94,7 @@ func SendToUser(msg *pb.Message, bytes []byte) error {
 }
 
 // SendToGroup 发送消息到群
-func SendToGroup() {
+func SendToGroup(msg *pb.Message, bytes []byte) error {
 
+	return nil
 }

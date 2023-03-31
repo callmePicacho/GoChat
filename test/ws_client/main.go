@@ -2,9 +2,9 @@ package main
 
 import (
 	"GoChat/pkg/protocol/pb"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"net/http"
@@ -199,32 +199,32 @@ func Login() *Client {
 	}
 
 	// 获取 token
-	var p fastjson.Parser
-	v, err := p.Parse(string(bodyData))
+	var respData struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data struct {
+			Token  string `json:"token"`
+			UserId string `json:"user_id"`
+		} `json:"data"`
+	}
+	err = json.Unmarshal(bodyData, &respData)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
 		panic(err)
 	}
 
+	if respData.Code != 200 {
+		panic(fmt.Sprintf("登录失败, %s", respData))
+	}
 	client := &Client{}
 
-	code, _ := v.Get("code").Int()
-	msg := v.Get("msg").String()
-
-	if code != 200 {
-		panic(fmt.Sprintf("登录失败, %s", msg))
-	}
-
-	respData := v.Get("data")
-
-	client.token = string(respData.GetStringBytes("token"))
-	clientStr := string(respData.GetStringBytes("user_id"))
+	client.token = respData.Data.Token
+	clientStr := respData.Data.UserId
 	client.userId, err = strconv.ParseUint(clientStr, 10, 64)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("client code:", code, " ", msg)
+	fmt.Println("client code:", respData.Code, " ", respData.Msg)
 	fmt.Println("token:", client.token, "userId", client.userId)
 	return client
 }

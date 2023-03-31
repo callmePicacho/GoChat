@@ -17,3 +17,7 @@ app:
   max_worker_task: 1024 # 业务 worker 队列中，每个 worker 的最大任务存储数量
   heartbeattime: 600 # 心跳超时时间 s ，10 * 60
   heartbeatInterval: 60 # 超时连接检测间隔 s
+etcd:
+  endpoints:    # etcd 端口列表
+  - "localhost:2379"
+  timeout: 5  # 超时时间 s

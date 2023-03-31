@@ -38,13 +38,17 @@ type Configuration struct {
 		HeartbeatTimeout  int    `mapstructure:"heartbeattime"`         // 心跳超时时间（秒）
 		HeartbeatInterval int    `mapstructure:"heartbeatInterval"`     // 超时连接检测间隔（秒）
 	} `mapstructure:"app"`
+
+	// ETCD相关配置
+	ETCD struct {
+		Endpoints []string `mapstructure:"endpoints"` // etcd endpoints 列表
+		Timeout   int      `mapstructure:"timeout"`   // 超时时间（秒）
+	} `mapstructure:"etcd"`
 }
 
-func InitConfig() {
+func InitConfig(configPath string) {
 	fmt.Println("config init ...")
-	viper.SetConfigName("app")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
+	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
 		fmt.Println(err)

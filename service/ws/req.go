@@ -116,7 +116,7 @@ func (r *Req) MessageHandler() {
 		// 消息本身 和 要发送的消息
 		err = SendToUser(msg, bytes)
 	case pb.SessionType_ST_Group:
-
+		err = SendToGroup(msg, bytes)
 	default:
 		fmt.Println("[消息处理] 会话类型错误")
 		return
