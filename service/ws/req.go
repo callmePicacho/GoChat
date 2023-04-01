@@ -98,7 +98,8 @@ func (r *Req) MessageHandler() {
 		return
 	}
 
-	if msg.ReceiverId == r.conn.GetUserId() {
+	// 单聊不能发给自己
+	if msg.SessionType == pb.SessionType_ST_Single && msg.ReceiverId == r.conn.GetUserId() {
 		fmt.Println("[消息处理] 接收者有误")
 		return
 	}

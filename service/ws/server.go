@@ -3,7 +3,6 @@ package ws
 import (
 	"GoChat/config"
 	"fmt"
-	"math/rand"
 	"sync"
 )
 
@@ -102,11 +101,14 @@ func (cm *Server) StartOneWorker(workerID int, taskQueue chan *Req) {
 // SendMsgToTaskQueue 将消息交给 taskQueue，由 worker 调度处理
 func (cm *Server) SendMsgToTaskQueue(req *Req) {
 	if len(cm.taskQueue) > 0 {
-		// hash
-		i := rand.Intn(len(cm.taskQueue))
+		// 根据ConnID来分配当前的连接应该由哪个worker负责处理
+		// 轮询的平均分配法则
+
+		//得到需要处理此条连接的workerID
+		workerID := req.conn.ConnId % uint64(len(cm.taskQueue))
 
 		// 将消息发给对应的 taskQueue
-		cm.taskQueue[i] <- req
+		cm.taskQueue[workerID] <- req
 	} else {
 		go req.f()
 	}

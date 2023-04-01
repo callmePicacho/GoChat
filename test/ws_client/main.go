@@ -55,19 +55,25 @@ func (c *Client) Start() {
 
 	var msg string
 	var receiverId uint64
+	var sessionType int8
 	for {
 		fmt.Print("发送消息: ")
 		_, err = fmt.Scanln(&msg)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Print("接收人id：")
+		fmt.Print("接收人id(user_id/group_id)：")
 		_, err = fmt.Scanln(&receiverId)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Print("发送消息类型(1-单聊、2-群聊)：")
+		_, err = fmt.Scanln(&sessionType)
+		if err != nil {
+			panic(err)
+		}
 		message := &pb.Message{
-			SessionType: pb.SessionType_ST_Single,
+			SessionType: pb.SessionType(sessionType),
 			ReceiverId:  receiverId,
 			SenderId:    c.userId,
 			MessageType: pb.MessageType_MT_Text,
@@ -84,7 +90,7 @@ func (c *Client) Heartbeat() {
 	ticker := time.NewTicker(time.Second * 2 * 60)
 	for range ticker.C {
 		c.SendMsg(pb.CmdType_CT_Heartbeat, nil)
-		fmt.Println("发送心跳", time.Now().Format("2006-01-02 15:04:05"))
+		//fmt.Println("发送心跳", time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
 
@@ -106,7 +112,7 @@ func (c *Client) HandlerMessage(bytes []byte) {
 		panic(err)
 	}
 
-	fmt.Println("收到消息：", msg)
+	fmt.Println("收到顶层 OutPut 消息：", msg)
 
 	switch msg.Type {
 	case pb.CmdType_CT_Login: // 登录

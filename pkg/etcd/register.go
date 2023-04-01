@@ -73,11 +73,12 @@ func (r *Register) putKeyWithLease(timeNum int64) error {
 func (r *Register) ListenLeaseRespChan() {
 	defer r.close()
 
-	for leaseKeepResp := range r.keepAliveChan {
-		fmt.Printf("续租成功，leaseID:%d, Put key:%s,val:%s reps:+%v\n", r.leaseID, r.key, r.val, leaseKeepResp)
+	//for leaseKeepResp := range r.keepAliveChan {
+	//	fmt.Printf("续租成功，leaseID:%d, Put key:%s,val:%s reps:+%v\n", r.leaseID, r.key, r.val, leaseKeepResp)
+	//}
+	for range r.keepAliveChan {
 	}
 	fmt.Printf("续约失败，leaseID:%d, Put key:%s,val:%s\n", r.leaseID, r.key, r.val)
-
 }
 
 // Close 撤销租约

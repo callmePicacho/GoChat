@@ -15,6 +15,7 @@ import (
 // 1. 启动读写线程
 // 2. 读线程读到数据后，根据数据类型获取处理函数，交给 worker 队列调度执行
 type Conn struct {
+	ConnId       uint64          // 连接编号，通过对编号取余，能够让 Conn 始终进入同一个 worker，保持有序性
 	server       *Server         // 当前连接属于哪个 server
 	UserId       uint64          // 连接所属用户id
 	UserIdMutex  sync.RWMutex    // 保护 userId 的锁
@@ -28,8 +29,9 @@ type Conn struct {
 	heartMutex        sync.Mutex // 保护最后活跃时间的锁
 }
 
-func NewConnection(server *Server, wsConn *websocket.Conn) *Conn {
+func NewConnection(server *Server, wsConn *websocket.Conn, ConnId uint64) *Conn {
 	return &Conn{
+		ConnId:            ConnId,
 		server:            server,
 		UserId:            0, // 此时用户未登录， userID 为 0
 		Socket:            wsConn,

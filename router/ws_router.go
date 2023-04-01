@@ -36,6 +36,8 @@ func WSRouter() {
 
 	r := gin.Default()
 
+	var connID uint64
+
 	r.GET("/ws", func(c *gin.Context) {
 		// 升级协议  http -> websocket
 		WsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -45,7 +47,8 @@ func WSRouter() {
 		}
 
 		// 初始化连接
-		conn := ws.NewConnection(server, WsConn)
+		conn := ws.NewConnection(server, WsConn, connID)
+		connID++
 
 		// 开启读写线程
 		go conn.Start()
