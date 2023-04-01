@@ -15,15 +15,17 @@ import (
 // 1. 启动读写线程
 // 2. 读线程读到数据后，根据数据类型获取处理函数，交给 worker 队列调度执行
 type Conn struct {
-	ConnId       uint64          // 连接编号，通过对编号取余，能够让 Conn 始终进入同一个 worker，保持有序性
-	server       *Server         // 当前连接属于哪个 server
-	UserId       uint64          // 连接所属用户id
-	UserIdMutex  sync.RWMutex    // 保护 userId 的锁
-	Socket       *websocket.Conn // 用户连接
-	sendCh       chan []byte     // 用户要发送的数据
-	isClose      bool            // 连接状态
-	isCloseMutex sync.RWMutex    // 保护 isClose 的锁
-	exitCh       chan struct{}   // 通知 writer 退出
+	ConnId           uint64          // 连接编号，通过对编号取余，能够让 Conn 始终进入同一个 worker，保持有序性
+	server           *Server         // 当前连接属于哪个 server
+	UserId           uint64          // 连接所属用户id
+	UserIdMutex      sync.RWMutex    // 保护 userId 的锁
+	Socket           *websocket.Conn // 用户连接
+	sendCh           chan []byte     // 用户要发送的数据
+	isClose          bool            // 连接状态
+	isCloseMutex     sync.RWMutex    // 保护 isClose 的锁
+	exitCh           chan struct{}   // 通知 writer 退出
+	maxClientId      uint64          // 该连接收到的最大 clientId，确保消息的可靠性
+	maxClientIdMutex sync.Mutex      // 保护 maxClientId 的锁
 
 	lastHeartBeatTime time.Time  // 最后活跃时间
 	heartMutex        sync.Mutex // 保护最后活跃时间的锁
@@ -99,6 +101,8 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 		req.f = req.HeartBeat
 	case pb.CmdType_CT_Message: // 上行消息
 		req.f = req.MessageHandler
+	case pb.CmdType_CT_ACK: // ACK TODO
+
 	default:
 		fmt.Println("未知消息类型")
 	}
@@ -222,6 +226,17 @@ func (c *Conn) SetUserId(userId uint64) {
 	defer c.UserIdMutex.Unlock()
 
 	c.UserId = userId
+}
+
+func (c *Conn) CompareAndIncrClientID(newMaxClientId uint64) bool {
+	c.maxClientIdMutex.Lock()
+	defer c.maxClientIdMutex.Unlock()
+
+	if c.maxClientId+1 == newMaxClientId {
+		c.maxClientId++
+		return true
+	}
+	return false
 }
 
 // RemoteAddr 获取远程客户端地址

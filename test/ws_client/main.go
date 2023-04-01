@@ -2,6 +2,7 @@ package main
 
 import (
 	"GoChat/pkg/protocol/pb"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -10,18 +11,23 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const (
-	httpAddr      = "http://localhost:9090"
-	websocketAddr = "ws://localhost:9091"
+	httpAddr       = "http://localhost:9090"
+	websocketAddr  = "ws://localhost:9091"
+	ResendCountMax = 3 // 超时重传最大次数
 )
 
 type Client struct {
-	conn   *websocket.Conn
-	token  string
-	userId uint64
+	conn                 *websocket.Conn
+	token                string
+	userId               uint64
+	clientId             uint64
+	clientId2Cancel      map[uint64]context.CancelFunc // clientId 到 context 的映射
+	clientId2CancelMutex sync.Mutex
 }
 
 // websocket 客户端
@@ -51,27 +57,30 @@ func (c *Client) Start() {
 	// 收取消息
 	go c.Receive()
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 300)
 
-	var msg string
-	var receiverId uint64
-	var sessionType int8
+	c.ReadLine()
+}
+
+// ReadLine 读取用户消息并发送
+func (c *Client) ReadLine() {
+	var (
+		msg         string
+		receiverId  uint64
+		sessionType int8
+	)
+
+	readLine := func(hint string, v interface{}) {
+		fmt.Println(hint)
+		_, err := fmt.Scanln(v)
+		if err != nil {
+			panic(err)
+		}
+	}
 	for {
-		fmt.Print("发送消息: ")
-		_, err = fmt.Scanln(&msg)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Print("接收人id(user_id/group_id)：")
-		_, err = fmt.Scanln(&receiverId)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Print("发送消息类型(1-单聊、2-群聊)：")
-		_, err = fmt.Scanln(&sessionType)
-		if err != nil {
-			panic(err)
-		}
+		readLine("发送消息", &msg)
+		readLine("接收人id(user_id/group_id)：", &receiverId)
+		readLine("发送消息类型(1-单聊、2-群聊)：", &sessionType)
 		message := &pb.Message{
 			SessionType: pb.SessionType(sessionType),
 			ReceiverId:  receiverId,
@@ -79,8 +88,41 @@ func (c *Client) Start() {
 			MessageType: pb.MessageType_MT_Text,
 			Content:     []byte(msg),
 		}
+		UpMsg := &pb.UpMsg{
+			Msg:      message,
+			ClientId: c.GetClientId(),
+		}
 
-		c.SendMsg(pb.CmdType_CT_Message, message)
+		c.SendMsg(pb.CmdType_CT_Message, UpMsg)
+
+		// 启动超时重传
+		ctx, cancel := context.WithCancel(context.Background())
+
+		go func(ctx context.Context) {
+			maxRetry := ResendCountMax // 最大重试次数
+			retryCount := 0
+			retryInterval := time.Millisecond * 100 // 重试间隔
+			for {
+				select {
+				case <-ctx.Done():
+					fmt.Println("收到 ACK，不再重试")
+					return
+				case <-time.After(retryInterval):
+					if retryCount >= maxRetry {
+						fmt.Println("达到最大超时次数，不再重试")
+						return
+					}
+					fmt.Println("消息超时 msg:", msg, "，第", retryCount+1, "次重试")
+					c.SendMsg(pb.CmdType_CT_Message, UpMsg)
+					retryCount++
+				}
+			}
+		}(ctx)
+
+		c.clientId2CancelMutex.Lock()
+		c.clientId2Cancel[UpMsg.ClientId] = cancel
+		c.clientId2CancelMutex.Unlock()
+
 		time.Sleep(time.Second)
 	}
 }
@@ -115,18 +157,34 @@ func (c *Client) HandlerMessage(bytes []byte) {
 	fmt.Println("收到顶层 OutPut 消息：", msg)
 
 	switch msg.Type {
-	case pb.CmdType_CT_Login: // 登录
-		fmt.Println("收到登录ACK", time.Now().Format("2006-01-02 15:04:05"))
-	case pb.CmdType_CT_Heartbeat: // 心跳
-		fmt.Println("收到心跳ACK", time.Now().Format("2006-01-02 15:04:05"))
 	case pb.CmdType_CT_Message:
 		message := new(pb.Message)
 		err = proto.Unmarshal(msg.Data, message)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("收到消息内容：", string(message.GetContent()))
 		fmt.Println("收到消息", message.String(), time.Now().Format("2006-01-02 15:04:05"))
+	case pb.CmdType_CT_ACK: // 收到 ACK
+		ackMsg := new(pb.ACKMsg)
+		err = proto.Unmarshal(msg.Data, ackMsg)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("收到消息", ackMsg.String(), time.Now().Format("2006-01-02 15:04:05"))
+
+		switch ackMsg.Type {
+		case pb.ACKType_AT_Up: // 收到上行消息的 ACK
+			// 取消超时重传
+			clientId := ackMsg.ClientId
+			c.clientId2CancelMutex.Lock()
+			if cancel, ok := c.clientId2Cancel[clientId]; ok {
+				// 取消超时重传
+				cancel()
+				delete(c.clientId2Cancel, clientId)
+				fmt.Println("取消超时重传，clientId:", clientId)
+			}
+			c.clientId2CancelMutex.Unlock()
+		}
 	default:
 		fmt.Println("未知消息类型")
 	}
@@ -137,8 +195,7 @@ func (c *Client) Login() {
 	fmt.Println("websocket login...")
 	// 组装底层数据
 	loginMsg := &pb.LoginMsg{
-		UserId: c.userId,
-		Token:  []byte(c.token),
+		Token: []byte(c.token),
 	}
 	c.SendMsg(pb.CmdType_CT_Login, loginMsg)
 }
@@ -168,6 +225,11 @@ func (c *Client) SendMsg(cmdType pb.CmdType, msg proto.Message) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (c *Client) GetClientId() uint64 {
+	c.clientId++
+	return c.clientId
 }
 
 // Login 用户http登录获取 token
@@ -221,7 +283,9 @@ func Login() *Client {
 	if respData.Code != 200 {
 		panic(fmt.Sprintf("登录失败, %s", respData))
 	}
-	client := &Client{}
+	client := &Client{
+		clientId2Cancel: make(map[uint64]context.CancelFunc),
+	}
 
 	client.token = respData.Data.Token
 	clientStr := respData.Data.UserId

@@ -110,6 +110,7 @@ func (cm *Server) SendMsgToTaskQueue(req *Req) {
 		// 将消息发给对应的 taskQueue
 		cm.taskQueue[workerID] <- req
 	} else {
+		// 可能导致消息乱序
 		go req.f()
 	}
 }
