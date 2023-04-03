@@ -103,6 +103,8 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 		req.f = req.MessageHandler
 	case pb.CmdType_CT_ACK: // ACK TODO
 
+	case pb.CmdType_CT_Sync: // 离线消息同步
+		req.f = req.Sync
 	default:
 		fmt.Println("未知消息类型")
 	}

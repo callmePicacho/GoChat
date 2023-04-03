@@ -28,6 +28,7 @@ type Client struct {
 	clientId             uint64
 	clientId2Cancel      map[uint64]context.CancelFunc // clientId 到 context 的映射
 	clientId2CancelMutex sync.Mutex
+	seq                  uint64 // 本地消息最大同步序列号
 }
 
 // websocket 客户端
@@ -54,10 +55,15 @@ func (c *Client) Start() {
 	// 心跳
 	go c.Heartbeat()
 
+	time.Sleep(time.Millisecond * 100)
+
+	// 离线消息同步
+	go c.Sync()
+
 	// 收取消息
 	go c.Receive()
 
-	time.Sleep(time.Millisecond * 300)
+	time.Sleep(time.Millisecond * 100)
 
 	c.ReadLine()
 }
@@ -136,6 +142,10 @@ func (c *Client) Heartbeat() {
 	}
 }
 
+func (c *Client) Sync() {
+	c.SendMsg(pb.CmdType_CT_Sync, &pb.SyncInputMsg{Seq: c.seq})
+}
+
 func (c *Client) Receive() {
 	for {
 		_, bytes, err := c.conn.ReadMessage()
@@ -157,6 +167,25 @@ func (c *Client) HandlerMessage(bytes []byte) {
 	fmt.Println("收到顶层 OutPut 消息：", msg)
 
 	switch msg.Type {
+	case pb.CmdType_CT_Sync:
+		syncMsg := new(pb.SyncOutputMsg)
+		err = proto.Unmarshal(msg.Data, syncMsg)
+		if err != nil {
+			panic(err)
+		}
+
+		seq := c.seq
+		for _, message := range syncMsg.Messages {
+			fmt.Println("收到离线消息：", message)
+			if seq < message.Seq {
+				seq = message.Seq
+			}
+		}
+		c.seq = seq
+		// 如果还有，继续拉取
+		if syncMsg.HasMore {
+			c.Sync()
+		}
 	case pb.CmdType_CT_Message:
 		message := new(pb.Message)
 		err = proto.Unmarshal(msg.Data, message)
@@ -283,8 +312,14 @@ func Login() *Client {
 	if respData.Code != 200 {
 		panic(fmt.Sprintf("登录失败, %s", respData))
 	}
+	// 获取客户端 seq 序列号
+	var seq uint64
+	fmt.Print("Enter seq: ")
+	fmt.Scanln(&seq)
+
 	client := &Client{
 		clientId2Cancel: make(map[uint64]context.CancelFunc),
+		seq:             seq,
 	}
 
 	client.token = respData.Data.Token

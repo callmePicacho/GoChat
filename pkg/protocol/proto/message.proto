@@ -32,6 +32,7 @@ enum CmdType {// 枚举消息类型
   CT_Heartbeat = 2;  // 心跳，客户端向服务端发送，连接保活
   CT_Message = 3;  // 消息投递，可能是服务端发给客户端，也可能是客户端发给服务端
   CT_ACK = 4;   // ACK
+  CT_Sync = 5;   // 离线消息同步
 }
 
 // 上行消息（客户端发送给服务端）顶层消息
@@ -76,6 +77,17 @@ message PushMsg {
   Message msg = 1;  // 消息内容
 }
 
+// 上行离线消息同步
+message SyncInputMsg {
+  uint64 seq = 1;  // 客户端已经同步的序列号
+}
+
+// 下行离线消息同步
+message SyncOutputMsg {
+  repeated Message messages = 1;  // 消息列表
+  bool has_more = 2;   // 是否还有更多数据
+}
+
 // 消息投递
 // 上行、下行
 message Message {
@@ -84,6 +96,7 @@ message Message {
   uint64 sender_id = 3;  // 发送者id
   MessageType message_type = 4;  // 消息类型 文本、图片、语音
   bytes content = 5;  // 实际用户所发数据
+  uint64 seq = 6;   // 客户端的最大消息同步序号
 }
 
 // ACK 回复

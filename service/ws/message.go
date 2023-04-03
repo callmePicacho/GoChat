@@ -6,6 +6,8 @@ import (
 	"GoChat/model"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/rpc"
+	"GoChat/pkg/util"
+	"GoChat/service"
 	"context"
 	"fmt"
 	"google.golang.org/protobuf/proto"
@@ -29,26 +31,54 @@ func GetOutputMsg(cmdType pb.CmdType, code int32, data []byte) ([]byte, error) {
 }
 
 // SendToUser 发送消息到好友
-func SendToUser(msg *pb.Message, bytes []byte) error {
+func SendToUser(msg *pb.Message, userId uint64) error {
+	// 获取接受者 seqId
+	seq, err := service.GetUserNextSeq(userId)
+	if err != nil {
+		fmt.Println("[消息处理] 获取 seq 失败,err:", err)
+		return err
+	}
+	msg.Seq = seq
+
 	// 消息存储
-	err := model.CreateMessage(&model.Message{
-		UserID:      msg.SenderId,
+	err = model.CreateMessage(&model.Message{
+		UserID:      userId,
+		SenderID:    msg.SenderId,
 		SessionType: int8(msg.SessionType),
 		ReceiverId:  msg.ReceiverId,
 		MessageType: int8(msg.MessageType),
 		Content:     msg.Content,
+		Seq:         seq,
 	})
 	if err != nil {
-		fmt.Println("[私聊消息处理] 存储失败，err:", err)
+		fmt.Println("[消息处理] 存储失败，err:", err)
+		return err
+	}
+
+	// 如果发给自己的，只落库不进行发送
+	if userId == msg.SenderId {
+		return nil
+	}
+
+	// 组装消息
+	pushMsg := &pb.PushMsg{Msg: msg}
+	pushMsgBytes, err := proto.Marshal(pushMsg)
+	if err != nil {
+		fmt.Println("[消息处理] pushMsg Marshal error,err:", err)
+		return err
+	}
+	bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), pushMsgBytes)
+	if err != nil {
+		fmt.Println("[消息处理] GetOutputMsg Marshal error,err:", err)
 		return err
 	}
 
 	// 进行推送
-	return Send(msg.ReceiverId, bytes)
+	return Send(userId, bytes)
 }
 
 // SendToGroup 发送消息到群
-func SendToGroup(msg *pb.Message, bytes []byte) error {
+func SendToGroup(msg *pb.Message) error {
 	// 获取群成员信息
 	userIds, err := model.GetGroupUserIdsByGroupId(msg.ReceiverId)
 	if err != nil {
@@ -70,38 +100,29 @@ func SendToGroup(msg *pb.Message, bytes []byte) error {
 		return nil
 	}
 
-	// 存储数据
-	err = model.CreateGroupMsg(&model.GroupMsg{
-		UserID:      msg.SenderId,
-		GroupID:     msg.ReceiverId,
-		MessageType: int8(msg.MessageType),
-		SendTime:    time.Now(), // TODO
-		Content:     msg.Content,
-	})
-	if err != nil {
-		fmt.Println("[群聊消息处理] 存储失败，err:", err)
-		return err
-	}
-	// 进行推送
-	for _, userId := range userIds {
-		if userId == msg.SenderId {
-			continue
+	go func() {
+		defer util.RecoverPanic()
+		// 进行推送
+		for _, userId := range userIds {
+			if userId == msg.SenderId {
+				continue
+			}
+			err := SendToUser(msg, userId)
+			if err != nil {
+				return
+			}
 		}
-		err = Send(userId, bytes)
-		if err != nil {
-			return err
-		}
-	}
+	}()
 
 	return nil
 }
 
 // Send 消息转发
-// 是否在线 ---否---> 离线消息存储 TODO
+// 是否在线 ---否---> 不进行推送
 //    |
 //    是
 //    ↓
-//  是否在本地 --否--> RPC 调用  -->  是否在本地   --否--> TODO
+//  是否在本地 --否--> RPC 调用  -->  是否在本地
 //    |                               |
 //    是                              是
 //    ↓                               ↓
@@ -117,7 +138,6 @@ func Send(receiverId uint64, bytes []byte) error {
 	// 不在线
 	if rpcAddr == "" {
 		fmt.Println("[消息处理]，用户不在线，receiverId:", receiverId)
-		// TODO 离线消息存储
 		return nil
 	}
 

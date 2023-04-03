@@ -4,6 +4,7 @@ import (
 	"GoChat/common"
 	"GoChat/config"
 	"GoChat/lib/cache"
+	"GoChat/model"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/util"
 	"fmt"
@@ -111,22 +112,25 @@ func (r *Req) MessageHandler() {
 		return
 	}
 
-	// 得到要转发给 B 的消息
-	bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), r.data)
+	// 给自己发一份，消息落库但是不推送 TODO 需要回复 seq
+	err = SendToUser(msg.Msg, msg.Msg.SenderId)
 	if err != nil {
-		fmt.Println("[消息处理] Marshal error,err:", err)
+		fmt.Println("[消息处理] send to 自己出错, err:", err)
 		return
 	}
 
 	// 单聊、群聊
 	switch msg.Msg.SessionType {
 	case pb.SessionType_ST_Single:
-		// 消息本身 和 要发送的消息
-		err = SendToUser(msg.Msg, bytes)
+		err = SendToUser(msg.Msg, msg.Msg.ReceiverId)
 	case pb.SessionType_ST_Group:
-		err = SendToGroup(msg.Msg, bytes)
+		err = SendToGroup(msg.Msg)
 	default:
 		fmt.Println("[消息处理] 会话类型错误")
+		return
+	}
+	if err != nil {
+		fmt.Println("[消息处理] 系统错误")
 		return
 	}
 
@@ -146,6 +150,41 @@ func (r *Req) MessageHandler() {
 		fmt.Println("[消息处理] proto.Marshal err:", err)
 		return
 	}
-	// 回复发送 Message 请求的客户端
+	// 回复发送 Message 请求的客户端 A
 	r.conn.SendMsg(msg.Msg.SenderId, ackBytes)
+}
+
+// Sync  消息同步，拉取离线消息
+func (r *Req) Sync() {
+	msg := new(pb.SyncInputMsg)
+	err := proto.Unmarshal(r.data, msg)
+	if err != nil {
+		fmt.Println("[离线消息] unmarshal error,err:", err)
+		return
+	}
+
+	// 根据 seq 查询，得到比 seq 大的用户消息
+	messages, hasMore, err := model.ListByUserIdAndSeq(r.conn.GetUserId(), msg.Seq, model.MessageLimit)
+	if err != nil {
+		fmt.Println("[离线消息] model.ListByUserIdAndSeq error, err:", err)
+		return
+	}
+	pbMessage := model.MessagesToPB(messages)
+
+	syncOut := &pb.SyncOutputMsg{
+		Messages: pbMessage,
+		HasMore:  hasMore,
+	}
+	syncOutMsg, err := proto.Marshal(syncOut)
+	if err != nil {
+		fmt.Println("[离线消息] proto.Marshal error, err:", err)
+		return
+	}
+	ackBytes, err := GetOutputMsg(pb.CmdType_CT_Sync, int32(common.OK), syncOutMsg)
+	if err != nil {
+		fmt.Println("[离线消息] proto.Marshal err:", err)
+		return
+	}
+	// 回复
+	r.conn.SendMsg(r.conn.GetUserId(), ackBytes)
 }
