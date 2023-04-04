@@ -71,6 +71,7 @@ func WSRouter() {
 
 	// 关闭服务
 	server.Stop()
+	checker.Stop()
 
 	// 5s 超时
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -22,9 +22,7 @@ type Req struct {
 }
 
 func (r *Req) Login() {
-
 	// 检查用户是否已登录 只能防止同一个连接多次调用 Login
-	// TODO 要防止多个连接使用相同 token 进行 Login，还需要验证 Redis 中是否存在用户数据并做相应处理
 	if r.conn.GetUserId() != 0 {
 		fmt.Println("[用户登录] 用户已登录")
 		return
@@ -44,8 +42,14 @@ func (r *Req) Login() {
 		return
 	}
 
-	// 设置 user_id
-	r.conn.SetUserId(userClaims.UserId)
+	// 检查用户是否已经在其他连接登录
+	onlineAddr, err := cache.GetUserOnline(userClaims.UserId)
+	if onlineAddr != "" {
+		// TODO 更友好的提示
+		fmt.Println("[用户登录] 用户已经在其他连接登录")
+		r.conn.Stop()
+		return
+	}
 
 	// Redis 存储用户数据 k: userId,  v: grpc地址，方便用户能直接通过这个地址进行 rpc 方法调用
 	grpcServerAddr := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.RPCPort)
@@ -55,18 +59,14 @@ func (r *Req) Login() {
 		return
 	}
 
-	// 回复ACK
-	ackMsg := &pb.ACKMsg{
-		Type:     pb.ACKType_AT_Login,
-		ClientId: 0, // TODO 回复 clientID 给客户端使用
-	}
-	ackMsgBytes, err := proto.Marshal(ackMsg)
-	if err != nil {
-		fmt.Println("[用户登录] 系统错误")
-		return
-	}
+	// 设置 user_id
+	r.conn.SetUserId(userClaims.UserId)
 
-	bytes, err := GetOutputMsg(pb.CmdType_CT_ACK, int32(common.OK), ackMsgBytes)
+	// 加入到 connMap 中
+	r.conn.server.AddConn(userClaims.UserId, r.conn)
+
+	// 回复ACK
+	bytes, err := GetOutputMsg(pb.CmdType_CT_ACK, int32(common.OK), &pb.ACKMsg{Type: pb.ACKType_AT_Login})
 	if err != nil {
 		fmt.Println("[用户登录] proto.Marshal err:", err)
 		return
@@ -74,12 +74,9 @@ func (r *Req) Login() {
 
 	// 回复发送 Login 请求的客户端
 	r.conn.SendMsg(userClaims.UserId, bytes)
-
-	// 加入到 connMap 中
-	r.conn.server.AddConn(userClaims.UserId, r.conn)
 }
 
-func (r *Req) HeartBeat() {
+func (r *Req) Heartbeat() {
 	// TODO 更新当前用户状态，不做回复
 }
 
@@ -112,8 +109,8 @@ func (r *Req) MessageHandler() {
 		return
 	}
 
-	// 给自己发一份，消息落库但是不推送 TODO 需要回复 seq
-	err = SendToUser(msg.Msg, msg.Msg.SenderId)
+	// 给自己发一份，消息落库但是不推送
+	seq, err := SendToUser(msg.Msg, msg.Msg.SenderId)
 	if err != nil {
 		fmt.Println("[消息处理] send to 自己出错, err:", err)
 		return
@@ -122,7 +119,7 @@ func (r *Req) MessageHandler() {
 	// 单聊、群聊
 	switch msg.Msg.SessionType {
 	case pb.SessionType_ST_Single:
-		err = SendToUser(msg.Msg, msg.Msg.ReceiverId)
+		_, err = SendToUser(msg.Msg, msg.Msg.ReceiverId)
 	case pb.SessionType_ST_Group:
 		err = SendToGroup(msg.Msg)
 	default:
@@ -135,17 +132,11 @@ func (r *Req) MessageHandler() {
 	}
 
 	// 回复发送上行消息的客户端 ACK
-	ackMsg := &pb.ACKMsg{
+	ackBytes, err := GetOutputMsg(pb.CmdType_CT_ACK, int32(common.OK), &pb.ACKMsg{
 		Type:     pb.ACKType_AT_Up,
 		ClientId: msg.ClientId, // 回复客户端，当前已 ACK 的消息
-	}
-	ackMsgBytes, err := proto.Marshal(ackMsg)
-	if err != nil {
-		fmt.Println("[消息处理] 系统错误")
-		return
-	}
-
-	ackBytes, err := GetOutputMsg(pb.CmdType_CT_ACK, int32(common.OK), ackMsgBytes)
+		Seq:      seq,          // 回复客户端当前其 seq
+	})
 	if err != nil {
 		fmt.Println("[消息处理] proto.Marshal err:", err)
 		return
@@ -171,16 +162,10 @@ func (r *Req) Sync() {
 	}
 	pbMessage := model.MessagesToPB(messages)
 
-	syncOut := &pb.SyncOutputMsg{
+	ackBytes, err := GetOutputMsg(pb.CmdType_CT_Sync, int32(common.OK), &pb.SyncOutputMsg{
 		Messages: pbMessage,
 		HasMore:  hasMore,
-	}
-	syncOutMsg, err := proto.Marshal(syncOut)
-	if err != nil {
-		fmt.Println("[离线消息] proto.Marshal error, err:", err)
-		return
-	}
-	ackBytes, err := GetOutputMsg(pb.CmdType_CT_Sync, int32(common.OK), syncOutMsg)
+	})
 	if err != nil {
 		fmt.Println("[离线消息] proto.Marshal err:", err)
 		return

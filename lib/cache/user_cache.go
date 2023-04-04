@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	userOnlinePrefix = "user_online_"   // 用户在线状态设置
-	ttl7D            = 7 * 24 * 60 * 60 // s  7天
+	userOnlinePrefix = "user_online_" // 用户在线状态设置
+	ttl1D            = 24 * 60 * 60   // s  1天
 )
 
 func GetUserKey(userId uint64) string {
@@ -20,7 +20,7 @@ func GetUserKey(userId uint64) string {
 // SetUserOnline 设置用户在线
 func SetUserOnline(userId uint64, addr string) error {
 	key := GetUserKey(userId)
-	_, err := db.RDB.Set(context.Background(), key, addr, ttl7D*time.Second).Result()
+	_, err := db.RDB.Set(context.Background(), key, addr, ttl1D*time.Second).Result()
 	if err != nil {
 		fmt.Println("[设置用户在线] 错误, err:", err)
 		return err
@@ -29,6 +29,7 @@ func SetUserOnline(userId uint64, addr string) error {
 }
 
 // GetUserOnline 获取用户在线地址
+// 如果获取不到，返回 addr = "" 且 err 为 nil
 func GetUserOnline(userId uint64) (string, error) {
 	key := GetUserKey(userId)
 	addr, err := db.RDB.Get(context.Background(), key).Result()

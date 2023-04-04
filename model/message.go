@@ -18,6 +18,7 @@ type Message struct {
 	MessageType int8      `gorm:"not null;comment:'消息类型,语言、文字、图片'" json:"message_type"`
 	Content     []byte    `gorm:"not null;comment:'消息内容'" json:"content"`
 	Seq         uint64    `gorm:"not null;comment:'消息序列号'" json:"seq"`
+	SendTime    time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;comment:'消息发送时间'" json:"send_time"`
 	CreateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;comment:'创建时间'" json:"create_time"`
 	UpdateTime  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;comment:'更新时间'" json:"update_time"`
 }

@@ -56,17 +56,14 @@ message Output {
 }
 
 // 登录
-// 仅上行
 message LoginMsg {
   bytes token = 1;    // token
 }
 
 // 心跳
-// 仅上行
-message HeartBeatMsg {}
+message HeartbeatMsg {}
 
 // 上行消息
-// 仅上行
 message UpMsg {
   Message msg = 1; // 消息内容
   uint64 clientId = 2;  // 保证上行消息可靠性
@@ -97,22 +94,18 @@ message Message {
   MessageType message_type = 4;  // 消息类型 文本、图片、语音
   bytes content = 5;  // 实际用户所发数据
   uint64 seq = 6;   // 客户端的最大消息同步序号
+  int64 send_time = 7; // 消息发送时间戳，ms
 }
 
 // ACK 回复
-// A -> B
-// A - Login -> Server          B
-//   <- ACK   -
-// A - UpMsg ->
-//   <- ACK   -
-//                 - PushMsg -> B
-//                  <- ACK   -
+// 根据顶层消息 type 解析得到
 // 客户端中发送场景：
-// 1. 客户端中收到 PushMsg 类型消息，向服务端回复 AT_Push 类型的 ACK，表明已收到
+// 1. 客户端中收到 PushMsg 类型消息，向服务端回复 AT_Push 类型的 ACK，表明已收到 TODO
 // 服务端中发送场景：
 // 1. 服务端收到 CT_Login 消息，向客户端回复 AT_Login 类型的 ACK
 // 2. 服务端收到 UpMsg 类型消息， 向客户端回复 AT_Up 类型的 ACK 和 clientId，表明已收到该 ACK，无需超时重试
 message ACKMsg {
   ACKType type = 1;   // 收到的是什么类型的 ACK
   uint64 clientId = 2;
+  uint64 seq = 3;   // 上行消息推送时回复最新 seq
 }

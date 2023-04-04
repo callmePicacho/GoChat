@@ -62,6 +62,7 @@ CREATE TABLE `message`
     `message_type` tinyint         NOT NULL COMMENT '消息类型,语言、文字、图片',
     `content`      blob            NOT NULL COMMENT '消息内容',
     `seq`          bigint unsigned NOT NULL COMMENT '消息序列号',
+    `send_time`    datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息发送时间',
     `create_time`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),

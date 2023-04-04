@@ -15,28 +15,37 @@ import (
 )
 
 // GetOutputMsg 组装出下行消息
-func GetOutputMsg(cmdType pb.CmdType, code int32, data []byte) ([]byte, error) {
-	msg := &pb.Output{
+func GetOutputMsg(cmdType pb.CmdType, code int32, message proto.Message) ([]byte, error) {
+	output := &pb.Output{
 		Type:    cmdType,
 		Code:    code,
 		CodeMsg: common.GetErrorMessage(common.OK, ""),
-		Data:    data,
+		Data:    nil,
 	}
-	bytes, err := proto.Marshal(msg)
+	if message != nil {
+		msgBytes, err := proto.Marshal(message)
+		if err != nil {
+			fmt.Println("[GetOutputMsg] message marshal err:", err)
+			return nil, err
+		}
+		output.Data = msgBytes
+	}
+
+	bytes, err := proto.Marshal(output)
 	if err != nil {
-		fmt.Println("[心跳] proto.Marshal err:", err)
+		fmt.Println("[GetOutputMsg] output marshal err:", err)
 		return nil, err
 	}
 	return bytes, nil
 }
 
 // SendToUser 发送消息到好友
-func SendToUser(msg *pb.Message, userId uint64) error {
+func SendToUser(msg *pb.Message, userId uint64) (uint64, error) {
 	// 获取接受者 seqId
 	seq, err := service.GetUserNextSeq(userId)
 	if err != nil {
 		fmt.Println("[消息处理] 获取 seq 失败,err:", err)
-		return err
+		return 0, err
 	}
 	msg.Seq = seq
 
@@ -49,32 +58,27 @@ func SendToUser(msg *pb.Message, userId uint64) error {
 		MessageType: int8(msg.MessageType),
 		Content:     msg.Content,
 		Seq:         seq,
+		SendTime:    time.UnixMilli(msg.SendTime),
 	})
 	if err != nil {
 		fmt.Println("[消息处理] 存储失败，err:", err)
-		return err
+		return 0, err
 	}
 
 	// 如果发给自己的，只落库不进行发送
 	if userId == msg.SenderId {
-		return nil
+		return seq, nil
 	}
 
 	// 组装消息
-	pushMsg := &pb.PushMsg{Msg: msg}
-	pushMsgBytes, err := proto.Marshal(pushMsg)
-	if err != nil {
-		fmt.Println("[消息处理] pushMsg Marshal error,err:", err)
-		return err
-	}
-	bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), pushMsgBytes)
+	bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), &pb.PushMsg{Msg: msg})
 	if err != nil {
 		fmt.Println("[消息处理] GetOutputMsg Marshal error,err:", err)
-		return err
+		return 0, err
 	}
 
 	// 进行推送
-	return Send(userId, bytes)
+	return 0, Send(userId, bytes)
 }
 
 // SendToGroup 发送消息到群
@@ -107,7 +111,7 @@ func SendToGroup(msg *pb.Message) error {
 			if userId == msg.SenderId {
 				continue
 			}
-			err := SendToUser(msg, userId)
+			_, err = SendToUser(msg, userId)
 			if err != nil {
 				return
 			}
@@ -122,11 +126,11 @@ func SendToGroup(msg *pb.Message) error {
 //    |
 //    是
 //    ↓
-//  是否在本地 --否--> RPC 调用  -->  是否在本地
-//    |                               |
-//    是                              是
-//    ↓                               ↓
-//  消息发送                          消息发送
+//  是否在本地 --否--> RPC 调用
+//    |
+//    是
+//    ↓
+//  消息发送
 
 func Send(receiverId uint64, bytes []byte) error {
 	// 查询是否在线

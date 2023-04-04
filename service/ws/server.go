@@ -35,10 +35,10 @@ func (cm *Server) Stop() {
 	connAll := cm.GetConnAll()
 	for _, conn := range connAll {
 		wg.Add(1)
-		conn := conn
+		c := conn
 		go func() {
 			defer wg.Done()
-			conn.Stop()
+			c.Stop()
 		}()
 	}
 	wg.Wait()
@@ -82,7 +82,7 @@ func (cm *Server) StartWorkerPool() {
 	for i := 0; i < len(cm.taskQueue); i++ {
 		// 初始化
 		cm.taskQueue[i] = make(chan *Req, config.GlobalConfig.App.MaxWorkerTask) // 初始化worker队列中，每个worker的队列长度
-		// 启动
+		// 启动worker
 		go cm.StartOneWorker(i, cm.taskQueue[i])
 	}
 }
@@ -101,7 +101,7 @@ func (cm *Server) StartOneWorker(workerID int, taskQueue chan *Req) {
 // SendMsgToTaskQueue 将消息交给 taskQueue，由 worker 调度处理
 func (cm *Server) SendMsgToTaskQueue(req *Req) {
 	if len(cm.taskQueue) > 0 {
-		// 根据ConnID来分配当前的连接应该由哪个worker负责处理
+		// 根据ConnID来分配当前的连接应该由哪个worker负责处理，保证同一个连接的消息处理串行
 		// 轮询的平均分配法则
 
 		//得到需要处理此条连接的workerID

@@ -59,6 +59,18 @@ func InitConfig(configPath string) {
 	if err != nil {
 		panic(fmt.Errorf("unable to decode into struct, %v", err))
 	}
+	reload()
 
 	fmt.Println("config init ok")
+}
+
+func reload() {
+	// 最小为 10
+	if GlobalConfig.App.WorkerPoolSize < 10 {
+		GlobalConfig.App.WorkerPoolSize = 10
+	}
+	// 最小为 1024
+	if GlobalConfig.App.MaxWorkerTask < 1000 {
+		GlobalConfig.App.MaxWorkerTask = 1024
+	}
 }

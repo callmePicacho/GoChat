@@ -98,7 +98,7 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 	case pb.CmdType_CT_Login: // 登录
 		req.f = req.Login
 	case pb.CmdType_CT_Heartbeat: // 心跳
-		req.f = req.HeartBeat
+		req.f = req.Heartbeat
 	case pb.CmdType_CT_Message: // 上行消息
 		req.f = req.MessageHandler
 	case pb.CmdType_CT_ACK: // ACK TODO
@@ -176,10 +176,12 @@ func (c *Conn) Stop() {
 	// 关闭 writer
 	c.exitCh <- struct{}{}
 
-	// 将连接从connMap中移除
-	c.server.RemoveConn(c.GetUserId())
-	// 用户下线
-	_ = cache.DelUserOnline(c.GetUserId())
+	if c.GetUserId() != 0 {
+		// 将连接从connMap中移除
+		c.server.RemoveConn(c.GetUserId())
+		// 用户下线
+		_ = cache.DelUserOnline(c.GetUserId())
+	}
 
 	c.isClose = true
 

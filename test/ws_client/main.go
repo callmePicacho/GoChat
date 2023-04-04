@@ -93,6 +93,7 @@ func (c *Client) ReadLine() {
 			SenderId:    c.userId,
 			MessageType: pb.MessageType_MT_Text,
 			Content:     []byte(msg),
+			SendTime:    time.Now().UnixMilli(),
 		}
 		UpMsg := &pb.UpMsg{
 			Msg:      message,
@@ -116,6 +117,7 @@ func (c *Client) ReadLine() {
 				case <-time.After(retryInterval):
 					if retryCount >= maxRetry {
 						fmt.Println("达到最大超时次数，不再重试")
+						// TODO 进行消息发送失败处理
 						return
 					}
 					fmt.Println("消息超时 msg:", msg, "，第", retryCount+1, "次重试")
@@ -137,7 +139,7 @@ func (c *Client) Heartbeat() {
 	//  2min 一次
 	ticker := time.NewTicker(time.Second * 2 * 60)
 	for range ticker.C {
-		c.SendMsg(pb.CmdType_CT_Heartbeat, nil)
+		c.SendMsg(pb.CmdType_CT_Heartbeat, &pb.HeartbeatMsg{})
 		//fmt.Println("发送心跳", time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
@@ -187,21 +189,28 @@ func (c *Client) HandlerMessage(bytes []byte) {
 			c.Sync()
 		}
 	case pb.CmdType_CT_Message:
-		message := new(pb.Message)
-		err = proto.Unmarshal(msg.Data, message)
+		pushMsg := new(pb.PushMsg)
+		err = proto.Unmarshal(msg.Data, pushMsg)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("收到消息", message.String(), time.Now().Format("2006-01-02 15:04:05"))
+		fmt.Printf("收到消息：%s, 发送人：%d, 会话类型：%s, 接收时间:%s\n", pushMsg.Msg.GetContent(), pushMsg.Msg.GetSenderId(), pushMsg.Msg.SessionType, time.Now().Format("2006-01-02 15:04:05"))
+		// 更新 seq
+		seq := pushMsg.Msg.Seq
+		if c.seq < seq {
+			c.seq = seq
+		}
+		fmt.Println("更新 seq:", c.seq)
 	case pb.CmdType_CT_ACK: // 收到 ACK
 		ackMsg := new(pb.ACKMsg)
 		err = proto.Unmarshal(msg.Data, ackMsg)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("收到消息", ackMsg.String(), time.Now().Format("2006-01-02 15:04:05"))
 
 		switch ackMsg.Type {
+		case pb.ACKType_AT_Login:
+			fmt.Println("登录成功")
 		case pb.ACKType_AT_Up: // 收到上行消息的 ACK
 			// 取消超时重传
 			clientId := ackMsg.ClientId
@@ -213,6 +222,11 @@ func (c *Client) HandlerMessage(bytes []byte) {
 				fmt.Println("取消超时重传，clientId:", clientId)
 			}
 			c.clientId2CancelMutex.Unlock()
+			// 更新客户端本地维护的 seq
+			seq := ackMsg.Seq
+			if c.seq < seq {
+				c.seq = seq
+			}
 		}
 	default:
 		fmt.Println("未知消息类型")
