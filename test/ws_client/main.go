@@ -194,7 +194,7 @@ func (c *Client) HandlerMessage(bytes []byte) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("收到消息：%s, 发送人：%d, 会话类型：%s, 接收时间:%s\n", pushMsg.Msg.GetContent(), pushMsg.Msg.GetSenderId(), pushMsg.Msg.SessionType, time.Now().Format("2006-01-02 15:04:05"))
+		fmt.Printf("收到消息：%s, 发送人id：%d, 会话类型：%s, 接收时间:%s\n", pushMsg.Msg.GetContent(), pushMsg.Msg.GetSenderId(), pushMsg.Msg.SessionType, time.Now().Format("2006-01-02 15:04:05"))
 		// 更新 seq
 		seq := pushMsg.Msg.Seq
 		if c.seq < seq {

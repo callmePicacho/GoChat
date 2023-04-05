@@ -46,6 +46,10 @@ func CreateMessage(msg *Message) error {
 	return db.DB.Create(msg).Error
 }
 
+func CreateMessageInBatches(messages []*Message) error {
+	return db.DB.CreateInBatches(messages, 100).Error
+}
+
 func ListByUserIdAndSeq(userId, seq uint64, limit int) ([]Message, bool, error) {
 	var cnt int64
 	err := db.DB.Model(&Message{}).Where("user_id = ? and seq > ?", userId, seq).

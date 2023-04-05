@@ -67,6 +67,7 @@ func Register(c *gin.Context) {
 		"msg":  "登录成功",
 		"data": gin.H{
 			"token": token,
+			"id":    util.Uint64ToStr(ub.ID),
 		},
 	})
 }

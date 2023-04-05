@@ -121,7 +121,13 @@ func (r *Req) MessageHandler() {
 	case pb.SessionType_ST_Single:
 		_, err = SendToUser(msg.Msg, msg.Msg.ReceiverId)
 	case pb.SessionType_ST_Group:
-		err = SendToGroup(msg.Msg)
+		go func() {
+			err := SendToGroup(msg.Msg)
+			if err != nil {
+				fmt.Println("[消息处理] 系统错误")
+				return
+			}
+		}()
 	default:
 		fmt.Println("[消息处理] 会话类型错误")
 		return

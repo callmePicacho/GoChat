@@ -36,6 +36,9 @@ func WSRouter() {
 
 	r := gin.Default()
 
+	gin.SetMode(gin.ReleaseMode)
+
+	//pprof.Register(r)
 	var connID uint64
 
 	r.GET("/ws", func(c *gin.Context) {
@@ -60,6 +63,7 @@ func WSRouter() {
 	}
 
 	go func() {
+		fmt.Println("websocket 启动：", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}

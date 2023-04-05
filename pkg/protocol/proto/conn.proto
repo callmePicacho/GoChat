@@ -5,11 +5,17 @@ option go_package = "GoChat/pkg/protocol/pb";
 import "google/protobuf/empty.proto";
 
 service Connect {
-  // 消息投递
+  // 私聊消息投递
   rpc DeliverMessage (DeliverMessageReq) returns (google.protobuf.Empty);
+  // 群聊消息投递
+  rpc DeliverMessageAll(DeliverMessageAllReq) returns (google.protobuf.Empty);
 }
 
 message DeliverMessageReq {
   uint64 receiver_id = 1;   //  消息接收者
   bytes data = 2;  // 要投递的消息
+}
+
+message DeliverMessageAllReq{
+  map<uint64, bytes> receiver_id_2_data = 1; // 消息接受者到要投递的消息的映射
 }

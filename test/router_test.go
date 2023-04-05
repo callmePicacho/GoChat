@@ -21,7 +21,7 @@ func TestRegister(t *testing.T) {
 
 	// 准备要发送的表单数据
 	data := url.Values{}
-	data.Set("phone_number", "222")
+	data.Set("phone_number", "55555")
 	data.Set("nickname", "test")
 	data.Set("password", "123")
 
@@ -52,6 +52,7 @@ func TestRegister(t *testing.T) {
 		Msg  string `json:"msg"`
 		Data struct {
 			Token string `json:"token"`
+			Id    string `json:"id"`
 		} `json:"data"`
 	}
 	err = json.Unmarshal(responseBody, &respData)
@@ -157,7 +158,7 @@ func TestCreateGroup(t *testing.T) {
 	// 准备要发送的表单数据
 	data := url.Values{}
 	data.Set("name", "6")
-	ids := []string{"1", "2", "3", "4", "5"}
+	ids := []string{"1", "2", "3", "4", "5", "6", "7"}
 	for _, id := range ids {
 		data.Add("ids", id)
 	}
@@ -189,6 +190,9 @@ func TestCreateGroup(t *testing.T) {
 	var respData struct {
 		Code int    `json:"code"`
 		Msg  string `json:"msg"`
+		Data struct {
+			Id string `json:"id"`
+		} `json:"data"`
 	}
 	err = json.Unmarshal(responseBody, &respData)
 	if err != nil {

@@ -31,16 +31,22 @@ func GetServer() *Server {
 // Stop 关闭服务
 func (cm *Server) Stop() {
 	fmt.Println("server stop ...")
+	ch := make(chan struct{}, 1000) // 控制并发数
 	var wg sync.WaitGroup
 	connAll := cm.GetConnAll()
 	for _, conn := range connAll {
+		ch <- struct{}{}
 		wg.Add(1)
 		c := conn
 		go func() {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				<-ch
+			}()
 			c.Stop()
 		}()
 	}
+	close(ch)
 	wg.Wait()
 }
 

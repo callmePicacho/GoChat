@@ -2,11 +2,12 @@ package ws
 
 import (
 	"GoChat/common"
+	"GoChat/config"
 	"GoChat/lib/cache"
 	"GoChat/model"
+	"GoChat/pkg/etcd"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/rpc"
-	"GoChat/pkg/util"
 	"GoChat/service"
 	"context"
 	"fmt"
@@ -81,46 +82,6 @@ func SendToUser(msg *pb.Message, userId uint64) (uint64, error) {
 	return 0, Send(userId, bytes)
 }
 
-// SendToGroup 发送消息到群
-func SendToGroup(msg *pb.Message) error {
-	// 获取群成员信息
-	userIds, err := model.GetGroupUserIdsByGroupId(msg.ReceiverId)
-	if err != nil {
-		fmt.Println("[群聊消息处理] 查询失败，err:", err, msg)
-		return err
-	}
-
-	// 检查当前用户是否属于该群
-	isMember := false
-	for _, userId := range userIds {
-		if msg.SenderId == userId {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
-		fmt.Println("[群聊消息处理] 用户不属于该群组，msg:", msg)
-		return nil
-	}
-
-	go func() {
-		defer util.RecoverPanic()
-		// 进行推送
-		for _, userId := range userIds {
-			if userId == msg.SenderId {
-				continue
-			}
-			_, err = SendToUser(msg, userId)
-			if err != nil {
-				return
-			}
-		}
-	}()
-
-	return nil
-}
-
 // Send 消息转发
 // 是否在线 ---否---> 不进行推送
 //    |
@@ -168,6 +129,103 @@ func Send(receiverId uint64, bytes []byte) error {
 	if err != nil {
 		fmt.Println("[消息处理] DeliverMessage err, err:", err)
 		return err
+	}
+
+	return nil
+}
+
+// SendToGroup 发送消息到群
+func SendToGroup(msg *pb.Message) error {
+	// 获取群成员信息
+	userIds, err := service.GetGroupUser(msg.ReceiverId)
+	if err != nil {
+		fmt.Println("[群聊消息处理] 查询失败，err:", err, msg)
+		return err
+	}
+
+	// userId set  k:userid v:该userId的seq
+	m := make(map[uint64]uint64)
+	for _, userId := range userIds {
+		m[userId] = 0
+	}
+
+	// 检查当前用户是否属于该群
+	if _, ok := m[msg.SenderId]; !ok {
+		fmt.Println("[群聊消息处理] 用户不属于该群组，msg:", msg)
+		return nil
+	}
+
+	// 自己不再进行推送
+	delete(m, msg.SenderId)
+
+	// 批量获取 seqId
+	// 批量创建 Message 对象
+	messages := make([]*model.Message, 0, len(userIds)-1)
+	for userId := range m {
+		// 获取接受者 seqId
+		seq, err := service.GetUserNextSeq(userId)
+		if err != nil {
+			fmt.Println("[消息处理] 获取 seq 失败,err:", err)
+			return err
+		}
+		m[userId] = seq
+
+		messages = append(messages, &model.Message{
+			UserID:      userId,
+			SenderID:    msg.SenderId,
+			SessionType: int8(msg.SessionType),
+			ReceiverId:  msg.ReceiverId,
+			MessageType: int8(msg.MessageType),
+			Content:     msg.Content,
+			Seq:         seq,
+			SendTime:    time.UnixMilli(msg.SendTime),
+		})
+	}
+
+	err = model.CreateMessageInBatches(messages)
+	if err != nil {
+		fmt.Println("[消息处理] 存储失败，err:", err)
+		return err
+	}
+
+	// 组装消息，进行推送
+	userId2Msg := make(map[uint64][]byte, len(m))
+	for userId := range m {
+		msg.Seq = m[userId]
+		bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), &pb.PushMsg{Msg: msg})
+		if err != nil {
+			fmt.Println("[消息处理] GetOutputMsg Marshal error,err:", err)
+			return err
+		}
+		userId2Msg[userId] = bytes
+	}
+
+	// 获取全部网关服务，进行消息推送
+	services := etcd.DiscoverySer.GetServices()
+	local := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.RPCPort)
+	for _, addr := range services {
+		// 如果是本机，进行本地推送
+		if local == addr {
+			//fmt.Println("进行本地推送")
+			for userId, data := range userId2Msg {
+				conn := ConnManager.GetConn(userId)
+				if conn != nil {
+					// 发送本地消息
+					conn.SendMsg(userId, data)
+				}
+			}
+		} else {
+			fmt.Println("远端推送：", addr)
+			// 如果不是本机，进行远程 RPC 调用
+			_, err = rpc.GetServerClient(addr).DeliverMessageAll(context.Background(), &pb.DeliverMessageAllReq{
+				ReceiverId_2Data: userId2Msg,
+			})
+
+			if err != nil {
+				fmt.Println("[消息处理] DeliverMessageAll err, err:", err)
+				return err
+			}
+		}
 	}
 
 	return nil

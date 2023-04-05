@@ -1,6 +1,7 @@
 package service
 
 import (
+	"GoChat/lib/cache"
 	"GoChat/model"
 	"GoChat/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -19,8 +20,7 @@ func CreateGroup(c *gin.Context) {
 		})
 		return
 	}
-
-	ids := make([]uint64, 0, len(idsStr))
+	ids := make([]uint64, 0, len(idsStr)+1)
 	for i := range idsStr {
 		ids = append(ids, util.StrToUint64(idsStr[i]))
 	}
@@ -51,8 +51,21 @@ func CreateGroup(c *gin.Context) {
 		})
 		return
 	}
+	// 将群成员信息更新到 Redis
+	err = cache.SetGroupUser(group.ID, ids)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误:" + err.Error(),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"msg":  "群组创建成功",
+		"data": gin.H{
+			"id": util.Uint64ToStr(group.ID),
+		},
 	})
 }

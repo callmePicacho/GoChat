@@ -32,6 +32,20 @@ func (*ConnectServer) DeliverMessage(ctx context.Context, req *pb.DeliverMessage
 	return resp, nil
 }
 
+func (*ConnectServer) DeliverMessageAll(ctx context.Context, req *pb.DeliverMessageAllReq) (*emptypb.Empty, error) {
+	resp := &emptypb.Empty{}
+
+	// 只要在本机，进行推送
+	for userId, data := range req.GetReceiverId_2Data() {
+		conn := ws.GetServer().GetConn(userId)
+		if conn != nil {
+			conn.SendMsg(userId, data)
+		}
+	}
+
+	return resp, nil
+}
+
 func InitRPCServer() {
 	rpcPort := config.GlobalConfig.App.RPCPort
 

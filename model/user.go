@@ -42,6 +42,24 @@ func GetUserById(id uint64) (*User, error) {
 
 func GetUserIdByIds(ids []uint64) ([]uint64, error) {
 	var newIds []uint64
-	err := db.DB.Model(&User{}).Where("id in (?)", ids).Pluck("id", &newIds).Error
-	return newIds, err
+	m := make(map[uint64]struct{}, len(ids))
+	for i := 0; i < len(ids); i += 1000 {
+		var tmp []uint64
+		end := i + 1000
+		if end > len(ids) {
+			end = len(ids)
+		}
+		subIds := ids[i:end]
+		err := db.DB.Model(&User{}).Where("id in (?)", subIds).Pluck("id", &tmp).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, id := range tmp {
+			m[id] = struct{}{}
+		}
+	}
+	for id := range m {
+		newIds = append(newIds, id)
+	}
+	return newIds, nil
 }

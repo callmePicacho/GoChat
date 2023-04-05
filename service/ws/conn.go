@@ -236,6 +236,7 @@ func (c *Conn) CompareAndIncrClientID(newMaxClientId uint64) bool {
 	c.maxClientIdMutex.Lock()
 	defer c.maxClientIdMutex.Unlock()
 
+	//fmt.Println("收到的 newMaxClientId 是：", newMaxClientId, "此时 c.maxClientId 是：", c.maxClientId)
 	if c.maxClientId+1 == newMaxClientId {
 		c.maxClientId++
 		return true

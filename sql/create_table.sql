@@ -69,18 +69,3 @@ CREATE TABLE `message`
     UNIQUE KEY `uk_user_id_seq` (`user_id`, `seq`) USING BTREE
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
-
-
-DROP TABLE IF EXISTS `seq`;
-CREATE TABLE `seq`
-(
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-    `object_type` tinyint         NOT NULL COMMENT '对象类型,1:用户；2：群组',
-    `object_id`   bigint unsigned NOT NULL COMMENT '对象id',
-    `seq`         bigint unsigned NOT NULL COMMENT '序列号',
-    `create_time` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_object` (`object_type`, `object_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4;

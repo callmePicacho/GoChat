@@ -14,6 +14,8 @@ import (
 func HTTPRouter() {
 	r := gin.Default()
 
+	gin.SetMode(gin.ReleaseMode)
+
 	// 用户注册
 	r.POST("/register", service.Register)
 
