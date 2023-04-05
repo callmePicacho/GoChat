@@ -81,7 +81,7 @@ func (c *Conn) HandlerMessage(bytes []byte) {
 		fmt.Println("unmarshal error", err)
 		return
 	}
-	fmt.Println("收到消息：", input)
+	//fmt.Println("收到消息：", input)
 
 	// 对未登录用户进行拦截
 	if input.Type != pb.CmdType_CT_Login && c.GetUserId() == 0 {
@@ -148,10 +148,11 @@ func (c *Conn) StartWriter() {
 	fmt.Println("[Writer Goroutine is running]")
 	defer fmt.Println(c.RemoteAddr(), "[conn Writer exit!]")
 
+	var err error
 	for {
 		select {
 		case data := <-c.sendCh:
-			if err := c.Socket.WriteMessage(websocket.TextMessage, data); err != nil {
+			if err = c.Socket.WriteMessage(websocket.BinaryMessage, data); err != nil {
 				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
 				return
 			}

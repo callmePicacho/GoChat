@@ -38,7 +38,7 @@ func WSRouter() {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	//pprof.Register(r)
+	// pprof.Register(r)
 	var connID uint64
 
 	r.GET("/ws", func(c *gin.Context) {

@@ -174,7 +174,7 @@ func (c *Client) send(chatId int64) {
 	go func(ctx context.Context) {
 		maxRetry := ResendCountMax // 最大重试次数
 		retryCount := 0
-		retryInterval := time.Millisecond * 100 // 重试间隔
+		retryInterval := time.Millisecond * 500 // 重试间隔
 		for {
 			select {
 			case <-ctx.Done():

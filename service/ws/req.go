@@ -94,7 +94,7 @@ func (r *Req) MessageHandler() {
 
 	// 实现消息可靠性
 	if !r.conn.CompareAndIncrClientID(msg.ClientId) {
-		fmt.Println("不是想要收到的 clientID，不进行处理, msg:", msg)
+		//fmt.Println("不是想要收到的 clientID，不进行处理, msg:", msg)
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"GoChat/config"
 	"GoChat/lib/cache"
 	"GoChat/model"
+	"GoChat/pkg/db"
 	"GoChat/pkg/etcd"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/rpc"
@@ -143,10 +144,10 @@ func SendToGroup(msg *pb.Message) error {
 		return err
 	}
 
-	// userId set  k:userid v:该userId的seq
-	m := make(map[uint64]uint64)
+	// userId set
+	m := make(map[uint64]struct{})
 	for _, userId := range userIds {
-		m[userId] = 0
+		m[userId] = struct{}{}
 	}
 
 	// 检查当前用户是否属于该群
@@ -158,18 +159,26 @@ func SendToGroup(msg *pb.Message) error {
 	// 自己不再进行推送
 	delete(m, msg.SenderId)
 
-	// 批量获取 seqId
-	// 批量创建 Message 对象
-	messages := make([]*model.Message, 0, len(userIds)-1)
+	sendUserIds := make([]uint64, 0, len(m))
 	for userId := range m {
-		// 获取接受者 seqId
-		seq, err := service.GetUserNextSeq(userId)
-		if err != nil {
-			fmt.Println("[消息处理] 获取 seq 失败,err:", err)
-			return err
-		}
-		m[userId] = seq
+		sendUserIds = append(sendUserIds, userId)
+	}
+	// 批量获取 seqId
+	seqs, err := service.GetUserNextSeqWithPipeline(db.RDB.Pipeline(), sendUserIds)
+	if err != nil {
+		fmt.Println("[批量获取 seq] 失败,err:", err)
+		return err
+	}
 
+	//  k:userid v:该userId的seq
+	sendUserSet := make(map[uint64]uint64, len(seqs))
+	for i, userId := range sendUserIds {
+		sendUserSet[userId] = seqs[i]
+	}
+
+	// 批量创建 Message 对象
+	messages := make([]*model.Message, 0, len(m))
+	for userId, seq := range sendUserSet {
 		messages = append(messages, &model.Message{
 			UserID:      userId,
 			SenderID:    msg.SenderId,
@@ -190,8 +199,8 @@ func SendToGroup(msg *pb.Message) error {
 
 	// 组装消息，进行推送
 	userId2Msg := make(map[uint64][]byte, len(m))
-	for userId := range m {
-		msg.Seq = m[userId]
+	for userId, seq := range sendUserSet {
+		msg.Seq = seq
 		bytes, err := GetOutputMsg(pb.CmdType_CT_Message, int32(common.OK), &pb.PushMsg{Msg: msg})
 		if err != nil {
 			fmt.Println("[消息处理] GetOutputMsg Marshal error,err:", err)
