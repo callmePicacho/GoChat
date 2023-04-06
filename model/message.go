@@ -3,6 +3,8 @@ package model
 import (
 	"GoChat/pkg/db"
 	"GoChat/pkg/protocol/pb"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -27,6 +29,28 @@ func (*Message) TableName() string {
 	return "message"
 }
 
+func MessagesToJson(messages ...*Message) []byte {
+	if len(messages) == 0 {
+		return nil
+	}
+	bytes, err := json.Marshal(&messages)
+	if err != nil {
+		fmt.Println("json.Marshal(messages) 失败,err:", err)
+		return nil
+	}
+	return bytes
+}
+
+func JsonToMessage(bytes []byte) []*Message {
+	messages := make([]*Message, 0)
+	err := json.Unmarshal(bytes, &messages)
+	if err != nil {
+		fmt.Println("json.Unmarshal(bytes, message) 失败,err:", err)
+		return nil
+	}
+	return messages
+}
+
 func MessagesToPB(messages []Message) []*pb.Message {
 	pbMessages := make([]*pb.Message, 0, len(messages))
 	for _, message := range messages {
@@ -42,12 +66,8 @@ func MessagesToPB(messages []Message) []*pb.Message {
 	return pbMessages
 }
 
-func CreateMessage(msg *Message) error {
-	return db.DB.Create(msg).Error
-}
-
-func CreateMessageInBatches(messages []*Message) error {
-	return db.DB.CreateInBatches(messages, 100).Error
+func CreateMessage(msgs ...*Message) error {
+	return db.DB.Create(msgs).Error
 }
 
 func ListByUserIdAndSeq(userId, seq uint64, limit int) ([]Message, bool, error) {

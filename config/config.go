@@ -44,6 +44,10 @@ type Configuration struct {
 		Endpoints []string `mapstructure:"endpoints"` // etcd endpoints 列表
 		Timeout   int      `mapstructure:"timeout"`   // 超时时间（秒）
 	} `mapstructure:"etcd"`
+
+	RabbitMQ struct {
+		URL string `mapstructure:"url"` // rabbitmq url
+	}
 }
 
 func InitConfig(configPath string) {

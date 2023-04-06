@@ -3,6 +3,7 @@ package etcd
 import (
 	"GoChat/common"
 	"GoChat/config"
+	"GoChat/lib/etcd"
 	"testing"
 	"time"
 )
@@ -11,19 +12,19 @@ func TestDiscovery(t *testing.T) {
 	config.InitConfig("../../app.yaml")
 
 	// 创建一个新的 Discovery 实例
-	srv, err := NewDiscovery()
+	srv, err := etcd.NewDiscovery()
 	if err != nil {
 		t.Fatalf("failed to create discovery: %v", err)
 	}
 	defer srv.Close()
 
 	// 注册两个 k-v
-	err = RegisterServer(common.EtcdServerList+"888", "888", 5)
+	err = etcd.RegisterServer(common.EtcdServerList+"888", "888", 5)
 	if err != nil {
 		panic(err)
 	}
 
-	err = RegisterServer(common.EtcdServerList+"666", "666", 5)
+	err = etcd.RegisterServer(common.EtcdServerList+"666", "666", 5)
 	if err != nil {
 		panic(err)
 	}

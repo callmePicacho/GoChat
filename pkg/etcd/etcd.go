@@ -3,12 +3,13 @@ package etcd
 import (
 	"GoChat/common"
 	"GoChat/config"
+	"GoChat/lib/etcd"
 	"fmt"
 	"time"
 )
 
 var (
-	DiscoverySer *Discovery
+	DiscoverySer *etcd.Discovery
 )
 
 // InitETCD 初始化服务注册发现
@@ -19,14 +20,14 @@ func InitETCD() {
 	fmt.Println("注册服务, ", hostPort)
 
 	// 注册服务并设置 k-v 租约
-	err := RegisterServer(common.EtcdServerList+hostPort, hostPort, 5)
+	err := etcd.RegisterServer(common.EtcdServerList+hostPort, hostPort, 5)
 	if err != nil {
 		return
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
-	DiscoverySer, err = NewDiscovery()
+	DiscoverySer, err = etcd.NewDiscovery()
 	if err != nil {
 		return
 	}

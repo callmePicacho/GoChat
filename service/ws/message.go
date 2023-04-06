@@ -4,6 +4,7 @@ import (
 	"GoChat/common"
 	"GoChat/config"
 	"GoChat/lib/cache"
+	"GoChat/lib/mq"
 	"GoChat/model"
 	"GoChat/pkg/etcd"
 	"GoChat/pkg/protocol/pb"
@@ -50,8 +51,8 @@ func SendToUser(msg *pb.Message, userId uint64) (uint64, error) {
 	}
 	msg.Seq = seq
 
-	// 消息存储
-	err = model.CreateMessage(&model.Message{
+	// 发给MQ
+	err = mq.MessageMQ.Publish(model.MessagesToJson(&model.Message{
 		UserID:      userId,
 		SenderID:    msg.SenderId,
 		SessionType: int8(msg.SessionType),
@@ -60,9 +61,9 @@ func SendToUser(msg *pb.Message, userId uint64) (uint64, error) {
 		Content:     msg.Content,
 		Seq:         seq,
 		SendTime:    time.UnixMilli(msg.SendTime),
-	})
+	}))
 	if err != nil {
-		fmt.Println("[消息处理] 存储失败，err:", err)
+		fmt.Println("[消息处理] mq.MessageMQ.Publish(messageBytes) 失败,err:", err)
 		return 0, err
 	}
 
@@ -144,7 +145,7 @@ func SendToGroup(msg *pb.Message) error {
 	}
 
 	// userId set
-	m := make(map[uint64]struct{})
+	m := make(map[uint64]struct{}, len(userIds))
 	for _, userId := range userIds {
 		m[userId] = struct{}{}
 	}
@@ -175,27 +176,27 @@ func SendToGroup(msg *pb.Message) error {
 		sendUserSet[userId] = seqs[i]
 	}
 
-	go func() {
-		// 批量创建 Message 对象
-		messages := make([]*model.Message, 0, len(m))
-		for userId, seq := range sendUserSet {
-			messages = append(messages, &model.Message{
-				UserID:      userId,
-				SenderID:    msg.SenderId,
-				SessionType: int8(msg.SessionType),
-				ReceiverId:  msg.ReceiverId,
-				MessageType: int8(msg.MessageType),
-				Content:     msg.Content,
-				Seq:         seq,
-				SendTime:    time.UnixMilli(msg.SendTime),
-			})
-		}
-		err = model.CreateMessageInBatches(messages)
-		if err != nil {
-			fmt.Println("[消息处理] 存储失败，err:", err)
-			return
-		}
-	}()
+	// 创建 Message 对象
+	messages := make([]*model.Message, 0, len(m))
+	for userId, seq := range sendUserSet {
+		messages = append(messages, &model.Message{
+			UserID:      userId,
+			SenderID:    msg.SenderId,
+			SessionType: int8(msg.SessionType),
+			ReceiverId:  msg.ReceiverId,
+			MessageType: int8(msg.MessageType),
+			Content:     msg.Content,
+			Seq:         seq,
+			SendTime:    time.UnixMilli(msg.SendTime),
+		})
+	}
+
+	// 发给MQ
+	err = mq.MessageMQ.Publish(model.MessagesToJson(messages...))
+	if err != nil {
+		fmt.Println("[消息处理] 群聊消息发送 MQ 失败,err:", err)
+		return err
+	}
 
 	// 组装消息，进行推送
 	userId2Msg := make(map[uint64][]byte, len(m))

@@ -18,6 +18,7 @@ func newTimer(interval time.Duration) *timer {
 }
 
 func (t *timer) run() {
+	fmt.Println("开始计时")
 	t.start = time.Now()
 	t.end = t.start
 	t.id = t.start.Unix()
