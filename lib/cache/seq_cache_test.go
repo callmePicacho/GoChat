@@ -6,13 +6,14 @@ import (
 	"testing"
 )
 
-func TestGroupUser(t *testing.T) {
+func TestGetNextSeqIds(t *testing.T) {
 	config.InitConfig("../../app.yaml")
 	db.InitRedis(config.GlobalConfig.Redis.Addr, config.GlobalConfig.Redis.Password)
 
-	var groupId uint64 = 77777
-	_, err := GetGroupUser(groupId)
+	userIds := []uint64{1, 2, 3, 4, 5}
+	ids, err := GetNextSeqIds(SeqObjectTypeUser, userIds)
 	if err != nil {
 		panic(err)
 	}
+	t.Log(ids)
 }

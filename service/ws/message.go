@@ -5,7 +5,6 @@ import (
 	"GoChat/config"
 	"GoChat/lib/cache"
 	"GoChat/model"
-	"GoChat/pkg/db"
 	"GoChat/pkg/etcd"
 	"GoChat/pkg/protocol/pb"
 	"GoChat/pkg/rpc"
@@ -164,7 +163,7 @@ func SendToGroup(msg *pb.Message) error {
 		sendUserIds = append(sendUserIds, userId)
 	}
 	// 批量获取 seqId
-	seqs, err := service.GetUserNextSeqWithPipeline(db.RDB.Pipeline(), sendUserIds)
+	seqs, err := service.GetUserNextSeqBatch(sendUserIds)
 	if err != nil {
 		fmt.Println("[批量获取 seq] 失败,err:", err)
 		return err
@@ -176,26 +175,27 @@ func SendToGroup(msg *pb.Message) error {
 		sendUserSet[userId] = seqs[i]
 	}
 
-	// 批量创建 Message 对象
-	messages := make([]*model.Message, 0, len(m))
-	for userId, seq := range sendUserSet {
-		messages = append(messages, &model.Message{
-			UserID:      userId,
-			SenderID:    msg.SenderId,
-			SessionType: int8(msg.SessionType),
-			ReceiverId:  msg.ReceiverId,
-			MessageType: int8(msg.MessageType),
-			Content:     msg.Content,
-			Seq:         seq,
-			SendTime:    time.UnixMilli(msg.SendTime),
-		})
-	}
-
-	err = model.CreateMessageInBatches(messages)
-	if err != nil {
-		fmt.Println("[消息处理] 存储失败，err:", err)
-		return err
-	}
+	go func() {
+		// 批量创建 Message 对象
+		messages := make([]*model.Message, 0, len(m))
+		for userId, seq := range sendUserSet {
+			messages = append(messages, &model.Message{
+				UserID:      userId,
+				SenderID:    msg.SenderId,
+				SessionType: int8(msg.SessionType),
+				ReceiverId:  msg.ReceiverId,
+				MessageType: int8(msg.MessageType),
+				Content:     msg.Content,
+				Seq:         seq,
+				SendTime:    time.UnixMilli(msg.SendTime),
+			})
+		}
+		err = model.CreateMessageInBatches(messages)
+		if err != nil {
+			fmt.Println("[消息处理] 存储失败，err:", err)
+			return
+		}
+	}()
 
 	// 组装消息，进行推送
 	userId2Msg := make(map[uint64][]byte, len(m))
@@ -224,7 +224,7 @@ func SendToGroup(msg *pb.Message) error {
 				}
 			}
 		} else {
-			fmt.Println("远端推送：", addr)
+			// fmt.Println("远端推送：", addr)
 			// 如果不是本机，进行远程 RPC 调用
 			_, err = rpc.GetServerClient(addr).DeliverMessageAll(context.Background(), &pb.DeliverMessageAllReq{
 				ReceiverId_2Data: userId2Msg,
