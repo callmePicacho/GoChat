@@ -28,7 +28,6 @@ type Configuration struct {
 	// 应用程序配置
 	App struct {
 		Salt              string `mapstructure:"salt"`                  // 密码加盐
-		Node              int    `mapstructure:"node"`                  // 雪花算法节点 ID
 		IP                string `mapstructure:"ip"`                    // 应用程序 IP 地址
 		HTTPServerPort    string `mapstructure:"http_server_port"`      // HTTP 服务器端口
 		WebsocketPort     string `mapstructure:"websocket_server_port"` // WebSocket 服务器端口

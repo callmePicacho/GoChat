@@ -8,7 +8,6 @@ redis:
   password: ""
 app:
   salt: "gogogoChat"    # 密码加盐
-  node: 1  # 雪花算法 node
   ip: "127.0.0.1"
   http_server_port: "9090"     # http 端口
   websocket_server_port: "9091"  # websocket 端口
