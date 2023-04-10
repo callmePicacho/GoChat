@@ -175,11 +175,13 @@ func (c *Client) send(chatId int64) {
 		maxRetry := ResendCountMax // 最大重试次数
 		retryCount := 0
 		retryInterval := time.Millisecond * 500 // 重试间隔
+		ticker := time.NewTicker(retryInterval)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(retryInterval):
+			case <-ticker.C:
 				if retryCount >= maxRetry {
 					return
 				}

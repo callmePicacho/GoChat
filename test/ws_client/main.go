@@ -109,12 +109,14 @@ func (c *Client) ReadLine() {
 			maxRetry := ResendCountMax // 最大重试次数
 			retryCount := 0
 			retryInterval := time.Millisecond * 100 // 重试间隔
+			ticker := time.NewTicker(retryInterval)
+			defer ticker.Stop()
 			for {
 				select {
 				case <-ctx.Done():
 					fmt.Println("收到 ACK，不再重试")
 					return
-				case <-time.After(retryInterval):
+				case <-ticker.C:
 					if retryCount >= maxRetry {
 						fmt.Println("达到最大超时次数，不再重试")
 						// TODO 进行消息发送失败处理

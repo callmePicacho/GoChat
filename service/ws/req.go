@@ -94,7 +94,7 @@ func (r *Req) MessageHandler() {
 
 	// 实现消息可靠性
 	if !r.conn.CompareAndIncrClientID(msg.ClientId) {
-		//fmt.Println("不是想要收到的 clientID，不进行处理, msg:", msg)
+		fmt.Println("不是想要收到的 clientID，不进行处理, msg:", msg)
 		return
 	}
 
@@ -132,7 +132,7 @@ func (r *Req) MessageHandler() {
 	}
 
 	// 回复发送上行消息的客户端 ACK
-	ackBytes, err := GetOutputMsg(pb.CmdType_CT_ACK, int32(common.OK), &pb.ACKMsg{
+	ackBytes, err := GetOutputMsg(pb.CmdType_CT_ACK, common.OK, &pb.ACKMsg{
 		Type:     pb.ACKType_AT_Up,
 		ClientId: msg.ClientId, // 回复客户端，当前已 ACK 的消息
 		Seq:      seq,          // 回复客户端当前其 seq

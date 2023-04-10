@@ -21,7 +21,7 @@ func GetOutputMsg(cmdType pb.CmdType, code int32, message proto.Message) ([]byte
 	output := &pb.Output{
 		Type:    cmdType,
 		Code:    code,
-		CodeMsg: common.GetErrorMessage(common.OK, ""),
+		CodeMsg: common.GetErrorMessage(uint32(code), ""),
 		Data:    nil,
 	}
 	if message != nil {

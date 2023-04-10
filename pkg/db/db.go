@@ -16,6 +16,11 @@ var (
 
 func InitMySQL(dataSource string) {
 	fmt.Println("MySQL init...")
+	var err error
+	//logFile, err := os.Create("./log/err.log")
+	//if err != nil {
+	//	panic(err)
+	//}
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
@@ -25,7 +30,6 @@ func InitMySQL(dataSource string) {
 		},
 	)
 
-	var err error
 	DB, err = gorm.Open(mysql.Open(dataSource),
 		&gorm.Config{
 			Logger: newLogger,
