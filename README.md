@@ -16,6 +16,25 @@ GoChat 是一款使用 Golang 实现的简易 IM 服务器，主要特性：
 - 服务发现：ETCD
 - 配置管理：viper
 
+## 架构
+![image.png](https://cdn.nlark.com/yuque/0/2023/png/2518584/1681118536031-bbe50473-4e3f-42ee-a499-60bb9c41d484.png#averageHue=%23fbfbfb&clientId=ucf147b3b-fec6-4&from=paste&height=663&id=uc6f1af5e&name=image.png&originHeight=994&originWidth=1452&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=88159&status=done&style=none&taskId=u496cb626-bf43-4ed5-b223-cc95213b826&title=&width=968)
+
+## 项目启动
+服务端启动：
+1. docker 安装 MySQL、Redis、ETCD、RabbitMQ
+2. 连接 MySQL，创建 gochat 库，进入执行 sql/create_table.sql 文件中 SQL 代码
+3. app.yaml 修改配置文件信息
+4. main.go 启动服务端
+
+客户端启动：
+1. 启动服务端后，执行 test/router_test.go 中测试可进行用户注册和群创建
+2. test/ws_client/main.go 启动客户端
+3. 启动多客户端可成功进行通讯
+
+水平扩展：
+1. 修改 app.yaml 中 `http_server_port`、`websocket_server_port` 和 `port`，启动第二个服务端
+2. 修改 test/ws_client/main.go 中 `httpAddr` 和 `websocketAddr` 参数，启动第二个客户端
+3. 连接不同服务端的客户端间亦可成功通讯
 
 ## 交互流程
 
@@ -169,9 +188,10 @@ Message 表数量总数：150 0000条
 ## TODO
 1. 接入层尝试实现主从 Reactor 线程模型后，再进行性能测试（参考：https://github.com/eranyanay/1m-go-websockets.git）
 2. 更友好的日志
-3. 实现下行消息可靠性，使用时间轮（参考：https://github.com/aceld/zinx/blob/HEAD/ztimer/timewheel.go）
-4. 实现 docker-compose 脚本
-5. 完善客户端 sdk，实现 GUI
-6. prometheus 系统监控
-7. 递增 id 使用微信消息序列号生成的思路，使用双 buffer（参考：http://www.52im.net/thread-1998-1-1.html）
-8. 优化完善，实现更多功能
+3. 增加负载均衡，选择合适的 WebSocket 服务
+4. 实现下行消息可靠性，使用时间轮（参考：https://github.com/aceld/zinx/blob/HEAD/ztimer/timewheel.go）
+5. 实现 docker-compose 脚本
+6. 完善客户端 sdk，实现 GUI
+7. prometheus 系统监控
+8. 递增 id 使用微信消息序列号生成的思路，使用双 buffer（参考：http://www.52im.net/thread-1998-1-1.html）
+9. 优化完善，实现更多功能

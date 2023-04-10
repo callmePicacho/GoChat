@@ -15,6 +15,7 @@ const (
 	contentType = "application/x-www-form-urlencoded"
 )
 
+// 注册用户
 func TestRegister(t *testing.T) {
 	// 创建一个 http.Client
 	client := &http.Client{}
@@ -62,6 +63,7 @@ func TestRegister(t *testing.T) {
 	t.Log(respData)
 }
 
+// 登录
 func TestLogin(t *testing.T) {
 	// 创建一个 http.Client
 	client := &http.Client{}
