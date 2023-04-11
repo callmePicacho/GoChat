@@ -52,7 +52,7 @@ func SendToUser(msg *pb.Message, userId uint64) (uint64, error) {
 	msg.Seq = seq
 
 	// 发给MQ
-	err = mq.MessageMQ.Publish(model.MessagesToJson(&model.Message{
+	err = mq.MessageMQ.Publish(model.MessageToProtoMarshal(&model.Message{
 		UserID:      userId,
 		SenderID:    msg.SenderId,
 		SessionType: int8(msg.SessionType),
@@ -192,7 +192,7 @@ func SendToGroup(msg *pb.Message) error {
 	}
 
 	// 发给MQ
-	err = mq.MessageMQ.Publish(model.MessagesToJson(messages...))
+	err = mq.MessageMQ.Publish(model.MessageToProtoMarshal(messages...))
 	if err != nil {
 		fmt.Println("[消息处理] 群聊消息发送 MQ 失败,err:", err)
 		return err
@@ -217,13 +217,7 @@ func SendToGroup(msg *pb.Message) error {
 		// 如果是本机，进行本地推送
 		if local == addr {
 			//fmt.Println("进行本地推送")
-			for userId, data := range userId2Msg {
-				conn := ConnManager.GetConn(userId)
-				if conn != nil {
-					// 发送本地消息
-					conn.SendMsg(userId, data)
-				}
-			}
+			GetServer().SendMessageAll(userId2Msg)
 		} else {
 			// fmt.Println("远端推送：", addr)
 			// 如果不是本机，进行远程 RPC 调用

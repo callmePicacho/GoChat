@@ -87,7 +87,7 @@ func (m *Manager) loopSend() {
 			// 首次发送消息开始计时
 			if !isStart {
 				isStart = true
-				msgTimer = newTimer(2 * time.Second)
+				msgTimer = newTimer(time.Second)
 				msgTimer.run()
 			}
 			// 发送 SendCount 次消息

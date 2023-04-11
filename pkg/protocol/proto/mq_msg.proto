@@ -1,0 +1,23 @@
+syntax = "proto3";
+package pb;
+option go_package = "GoChat/pkg/protocol/pb";
+
+import "google/protobuf/timestamp.proto";
+
+message MQMessages {
+  repeated MQMessage messages = 1;
+}
+
+message MQMessage {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  uint64 sender_id = 3;
+  int32 session_type = 4;
+  uint64 receiver_id = 5;
+  int32 message_type = 6;
+  bytes content = 7;
+  uint64 seq = 8;
+  google.protobuf.Timestamp send_time = 9;
+  google.protobuf.Timestamp create_time = 10;
+  google.protobuf.Timestamp update_time = 11;
+}

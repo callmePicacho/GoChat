@@ -3,8 +3,9 @@ package model
 import (
 	"GoChat/pkg/db"
 	"GoChat/pkg/protocol/pb"
-	"encoding/json"
 	"fmt"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
 
@@ -29,26 +30,53 @@ func (*Message) TableName() string {
 	return "message"
 }
 
-func MessagesToJson(messages ...*Message) []byte {
+func ProtoMarshalToMessage(data []byte) []*Message {
+	var messages []*Message
+	mqMessages := &pb.MQMessages{}
+	err := proto.Unmarshal(data, mqMessages)
+	if err != nil {
+		fmt.Println("json.Unmarshal(mqMessages) 失败,err:", err)
+		return nil
+	}
+	for _, mqMessage := range mqMessages.Messages {
+		message := &Message{
+			UserID:      mqMessage.UserId,
+			SenderID:    mqMessage.SenderId,
+			SessionType: int8(mqMessage.SessionType),
+			ReceiverId:  mqMessage.ReceiverId,
+			MessageType: int8(mqMessage.MessageType),
+			Content:     mqMessage.Content,
+			Seq:         mqMessage.Seq,
+			SendTime:    mqMessage.SendTime.AsTime(),
+		}
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func MessageToProtoMarshal(messages ...*Message) []byte {
 	if len(messages) == 0 {
 		return nil
 	}
-	bytes, err := json.Marshal(&messages)
+	var mqMessage []*pb.MQMessage
+	for _, message := range messages {
+		mqMessage = append(mqMessage, &pb.MQMessage{
+			UserId:      message.UserID,
+			SenderId:    message.SenderID,
+			SessionType: int32(message.SessionType),
+			ReceiverId:  message.ReceiverId,
+			MessageType: int32(message.MessageType),
+			Content:     message.Content,
+			Seq:         message.Seq,
+			SendTime:    timestamppb.New(message.SendTime),
+		})
+	}
+	bytes, err := proto.Marshal(&pb.MQMessages{Messages: mqMessage})
 	if err != nil {
 		fmt.Println("json.Marshal(messages) 失败,err:", err)
 		return nil
 	}
 	return bytes
-}
-
-func JsonToMessage(bytes []byte) []*Message {
-	messages := make([]*Message, 0)
-	err := json.Unmarshal(bytes, &messages)
-	if err != nil {
-		fmt.Println("json.Unmarshal(bytes, message) 失败,err:", err)
-		return nil
-	}
-	return messages
 }
 
 func MessagesToPB(messages []Message) []*pb.Message {

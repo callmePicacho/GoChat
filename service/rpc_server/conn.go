@@ -35,13 +35,8 @@ func (*ConnectServer) DeliverMessage(ctx context.Context, req *pb.DeliverMessage
 func (*ConnectServer) DeliverMessageAll(ctx context.Context, req *pb.DeliverMessageAllReq) (*emptypb.Empty, error) {
 	resp := &emptypb.Empty{}
 
-	// 只要在本机，进行推送
-	for userId, data := range req.GetReceiverId_2Data() {
-		conn := ws.GetServer().GetConn(userId)
-		if conn != nil {
-			conn.SendMsg(userId, data)
-		}
-	}
+	// 进行本地推送
+	ws.GetServer().SendMessageAll(req.GetReceiverId_2Data())
 
 	return resp, nil
 }

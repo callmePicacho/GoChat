@@ -22,7 +22,11 @@ func InitMessageMQ(url string) {
 }
 
 func MessageCreateHandler(d rabbitmq.Delivery) rabbitmq.Action {
-	messageModels := model.JsonToMessage(d.Body)
+	messageModels := model.ProtoMarshalToMessage(d.Body)
+	if messageModels == nil {
+		fmt.Println("空的")
+		return rabbitmq.NackDiscard
+	}
 	err := model.CreateMessage(messageModels...)
 	if err != nil {
 		fmt.Println("[MessageCreateHandler] model.CreateMessage 失败，err:", err)

@@ -82,6 +82,28 @@ func (cm *Server) GetConnAll() []*Conn {
 	return conns
 }
 
+// SendMessageAll 进行本地推送
+func (cm *Server) SendMessageAll(userId2Msg map[uint64][]byte) {
+	var wg sync.WaitGroup
+	ch := make(chan struct{}, 5) // 限制并发数
+	for userId, data := range userId2Msg {
+		ch <- struct{}{}
+		wg.Add(1)
+		go func(userId uint64, data []byte) {
+			defer func() {
+				<-ch
+				wg.Done()
+			}()
+			conn := ConnManager.GetConn(userId)
+			if conn != nil {
+				conn.SendMsg(userId, data)
+			}
+		}(userId, data)
+	}
+	close(ch)
+	wg.Wait()
+}
+
 // StartWorkerPool 启动 worker 工作池
 func (cm *Server) StartWorkerPool() {
 	// 初始化并启动 worker 工作池
