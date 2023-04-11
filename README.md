@@ -19,6 +19,11 @@ GoChat 是一款使用 Golang 实现的简易 IM 服务器，主要特性：
 ## 架构
 ![image.png](https://cdn.nlark.com/yuque/0/2023/png/2518584/1681118536031-bbe50473-4e3f-42ee-a499-60bb9c41d484.png#averageHue=%23fbfbfb&clientId=ucf147b3b-fec6-4&from=paste&height=663&id=uc6f1af5e&name=image.png&originHeight=994&originWidth=1452&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=88159&status=done&style=none&taskId=u496cb626-bf43-4ed5-b223-cc95213b826&title=&width=968)
 
+## 相关文档
+[消息可靠性和有序性](docs/消息可靠性和有序性.md)
+
+[性能优化](docs/性能优化.md)
+
 ## 项目启动
 服务端启动：
 1. docker 安装 MySQL、Redis、ETCD、RabbitMQ
