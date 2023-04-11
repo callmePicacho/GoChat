@@ -55,6 +55,11 @@ message Output {
   bytes data = 4;  // 数据
 }
 
+// 下行消息批处理
+message OutputBatch {
+  repeated bytes outputs = 1;
+}
+
 // 登录
 message LoginMsg {
   bytes token = 1;    // token
@@ -109,3 +114,4 @@ message ACKMsg {
   uint64 clientId = 2;
   uint64 seq = 3;   // 上行消息推送时回复最新 seq
 }
+

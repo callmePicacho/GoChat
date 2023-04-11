@@ -66,60 +66,67 @@ func (c *Client) read() {
 			panic(err)
 		}
 
-		msg := new(pb.Output)
-		err = proto.Unmarshal(bytes, msg)
+		outputBatchMsg := new(pb.OutputBatch)
+		err = proto.Unmarshal(bytes, outputBatchMsg)
 		if err != nil {
 			panic(err)
 		}
-
-		// 只收两种，Message 收取下行消息和 ACK，上行消息ACK回复
-		switch msg.Type {
-		case pb.CmdType_CT_Message:
-			// 计算接收消息数量
-			atomic.AddInt64(&receivedMessageCount, 1)
-			msgTimer.updateEndTime()
-
-			pushMsg := new(pb.PushMsg)
-			err = proto.Unmarshal(msg.Data, pushMsg)
-			if err != nil {
-				panic(err)
-			}
-			// 更新 seq
-			seq := pushMsg.Msg.Seq
-			if c.seq < seq {
-				c.seq = seq
-			}
-		case pb.CmdType_CT_ACK: // 收到 ACK
-			ackMsg := new(pb.ACKMsg)
-			err = proto.Unmarshal(msg.Data, ackMsg)
+		for _, output := range outputBatchMsg.Outputs {
+			msg := new(pb.Output)
+			err = proto.Unmarshal(output, msg)
 			if err != nil {
 				panic(err)
 			}
 
-			switch ackMsg.Type {
-			case pb.ACKType_AT_Up: // 收到上行消息的 ACK
+			// 只收两种，Message 收取下行消息和 ACK，上行消息ACK回复
+			switch msg.Type {
+			case pb.CmdType_CT_Message:
 				// 计算接收消息数量
 				atomic.AddInt64(&receivedMessageCount, 1)
 				msgTimer.updateEndTime()
 
-				// 取消超时重传
-				clientId := ackMsg.ClientId
-				c.clientId2CancelMutex.Lock()
-				if cancel, ok := c.clientId2Cancel[clientId]; ok {
-					// 取消超时重传
-					cancel()
-					delete(c.clientId2Cancel, clientId)
-					//fmt.Println("取消超时重传，clientId:", clientId)
+				pushMsg := new(pb.PushMsg)
+				err = proto.Unmarshal(msg.Data, pushMsg)
+				if err != nil {
+					panic(err)
 				}
-				c.clientId2CancelMutex.Unlock()
-				// 更新客户端本地维护的 seq
-				seq := ackMsg.Seq
+				// 更新 seq
+				seq := pushMsg.Msg.Seq
 				if c.seq < seq {
 					c.seq = seq
 				}
+			case pb.CmdType_CT_ACK: // 收到 ACK
+				ackMsg := new(pb.ACKMsg)
+				err = proto.Unmarshal(msg.Data, ackMsg)
+				if err != nil {
+					panic(err)
+				}
+
+				switch ackMsg.Type {
+				case pb.ACKType_AT_Up: // 收到上行消息的 ACK
+					// 计算接收消息数量
+					atomic.AddInt64(&receivedMessageCount, 1)
+					msgTimer.updateEndTime()
+
+					// 取消超时重传
+					clientId := ackMsg.ClientId
+					c.clientId2CancelMutex.Lock()
+					if cancel, ok := c.clientId2Cancel[clientId]; ok {
+						// 取消超时重传
+						cancel()
+						delete(c.clientId2Cancel, clientId)
+						//fmt.Println("取消超时重传，clientId:", clientId)
+					}
+					c.clientId2CancelMutex.Unlock()
+					// 更新客户端本地维护的 seq
+					seq := ackMsg.Seq
+					if c.seq < seq {
+						c.seq = seq
+					}
+				}
+			default:
+				fmt.Println("未知消息类型")
 			}
-		default:
-			fmt.Println("未知消息类型")
 		}
 	}
 }

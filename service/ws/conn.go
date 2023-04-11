@@ -49,7 +49,8 @@ func (c *Conn) Start() {
 	go c.StartReader()
 
 	// 开启用于写回客户端数据流程的 goroutine
-	go c.StartWriter()
+	//go c.StartWriter()
+	go c.StartWriterWithBuffer()
 }
 
 // StartReader 用于从客户端中读取数据
@@ -158,6 +159,52 @@ func (c *Conn) StartWriter() {
 			}
 			// 更新心跳时间
 			c.KeepLive()
+		case <-c.exitCh:
+			return
+		}
+	}
+}
+
+// StartWriterWithBuffer 向客户端写数据
+// 由延迟优先调整为吞吐优先，使得消息的整体吞吐提升，但是单条消息的延迟会有所上升
+func (c *Conn) StartWriterWithBuffer() {
+	fmt.Println("[Writer Goroutine is running]")
+	defer fmt.Println(c.RemoteAddr(), "[conn Writer exit!]")
+
+	// 每 100ms 或者当 buffer 中存够 50 条数据时，进行发送
+	tickerInterval := 100
+	ticker := time.NewTicker(time.Millisecond * time.Duration(tickerInterval))
+	bufferLimit := 50
+	buffer := &pb.OutputBatch{Outputs: make([][]byte, 0, bufferLimit)}
+
+	send := func() {
+		if len(buffer.Outputs) == 0 {
+			return
+		}
+		//fmt.Println("buffer 长度：", len(buffer.Outputs))
+		sendData, err := proto.Marshal(buffer)
+		if err != nil {
+			fmt.Println("send data proto.Marshal err:", err)
+			return
+		}
+		if err = c.Socket.WriteMessage(websocket.BinaryMessage, sendData); err != nil {
+			fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+			return
+		}
+		buffer.Outputs = make([][]byte, 0, bufferLimit)
+		// 更新心跳时间
+		c.KeepLive()
+	}
+
+	for {
+		select {
+		case buff := <-c.sendCh:
+			buffer.Outputs = append(buffer.Outputs, buff)
+			if len(buffer.Outputs) == bufferLimit {
+				send()
+			}
+		case <-ticker.C:
+			send()
 		case <-c.exitCh:
 			return
 		}
