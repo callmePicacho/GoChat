@@ -37,7 +37,7 @@ func NewConnection(server *Server, wsConn *websocket.Conn, ConnId uint64) *Conn 
 		server:            server,
 		UserId:            0, // 此时用户未登录， userID 为 0
 		Socket:            wsConn,
-		sendCh:            make(chan []byte, 1024),
+		sendCh:            make(chan []byte, 10),
 		isClose:           false,
 		exitCh:            make(chan struct{}, 1),
 		lastHeartBeatTime: time.Now(), // 刚连接时初始化，避免正好遇到清理执行，如果连接没有后续操作，将会在下次被心跳检测踢出
