@@ -202,5 +202,5 @@ Message 表数量总数：1000 0000条 = 总数500人 * 500条 * 40次
 5. 实现 docker-compose 脚本
 6. 完善客户端 sdk，实现 GUI
 7. prometheus 系统监控
-8. 递增 id 使用微信消息序列号生成的思路，使用双 buffer（参考：http://www.52im.net/thread-1998-1-1.html）
+8. ~~递增 id 使用微信消息序列号生成的思路，使用双 buffer（参考：http://www.52im.net/thread-1998-1-1.html）~~
 9. 优化完善，实现更多功能

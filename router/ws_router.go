@@ -5,6 +5,7 @@ import (
 	"GoChat/service/ws"
 	"context"
 	"fmt"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
@@ -38,7 +39,7 @@ func WSRouter() {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	// pprof.Register(r)
+	pprof.Register(r)
 	var connID uint64
 
 	r.GET("/ws", func(c *gin.Context) {
