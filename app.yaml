@@ -22,3 +22,6 @@ etcd:
   timeout: 5  # 超时时间 s
 rabbitmq:
   url: "amqp://guest:guest@localhost:5672/"
+log:
+  target: "file"  # 日志输出路径：可选值 console/file
+  level: "debug"   # 日志输出级别 debug、info、warn、error、dpanic、panic、fatal

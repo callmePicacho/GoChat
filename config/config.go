@@ -1,8 +1,11 @@
 package config
 
 import (
+	"GoChat/pkg/logger"
 	"fmt"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var GlobalConfig *Configuration
@@ -47,10 +50,40 @@ type Configuration struct {
 	RabbitMQ struct {
 		URL string `mapstructure:"url"` // rabbitmq url
 	}
+
+	Log struct {
+		Target   string `mapstructure:"target"` // 日志输出路径：可选值 console/file
+		Level    string `mapstructure:"level"`  // 日志输出级别
+		LevelNum zapcore.Level
+	}
+}
+
+func (c Configuration) String() string {
+	return fmt.Sprintf(
+		"JWT:\n  SignKey: %s\n  ExpireTime: %d\nMySQL:\n  DNS: %s\nRedis:\n  Addr: %s\n  Password: %s\nApp:\n  Salt: %s\n  IP: %s\n  HTTPServerPort: %s\n  WebsocketPort: %s\n  RPCPort: %s\n  WorkerPoolSize: %d\n  MaxWorkerTask: %d\n  HeartbeatTimeout: %d\n  HeartbeatInterval: %d\nETCD:\n  Endpoints: %v\n  Timeout: %d\nRabbitMQ:\n  URL: %s\nLog:\n  Target: %s\n  Level: %s\n",
+		c.JWT.SignKey,
+		c.JWT.ExpireTime,
+		c.MySQL.DNS,
+		c.Redis.Addr,
+		c.Redis.Password,
+		c.App.Salt,
+		c.App.IP,
+		c.App.HTTPServerPort,
+		c.App.WebsocketPort,
+		c.App.RPCPort,
+		c.App.WorkerPoolSize,
+		c.App.MaxWorkerTask,
+		c.App.HeartbeatTimeout,
+		c.App.HeartbeatInterval,
+		c.ETCD.Endpoints,
+		c.ETCD.Timeout,
+		c.RabbitMQ.URL,
+		c.Log.Target,
+		c.Log.Level,
+	)
 }
 
 func InitConfig(configPath string) {
-	fmt.Println("config init ...")
 	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -64,7 +97,9 @@ func InitConfig(configPath string) {
 	}
 	reload()
 
-	fmt.Println("config init ok")
+	// 初始化 log
+	logger.InitLogger(GlobalConfig.Log.Target, GlobalConfig.Log.LevelNum)
+	logger.Logger.Debug("config  init ok", zap.String("GlobalConfig", GlobalConfig.String()))
 }
 
 func reload() {
@@ -76,4 +111,18 @@ func reload() {
 	if GlobalConfig.App.MaxWorkerTask < 1000 {
 		GlobalConfig.App.MaxWorkerTask = 1024
 	}
+	// 默认为控制台
+	if GlobalConfig.Log.Target == "file" {
+		GlobalConfig.Log.Target = logger.File
+	} else {
+		GlobalConfig.Log.Target = logger.Console
+	}
+	// 如果解析失败默认为 Error 级别
+	var err error
+	GlobalConfig.Log.LevelNum, err = zapcore.ParseLevel(GlobalConfig.Log.Level)
+	if err != nil {
+		GlobalConfig.Log.LevelNum = zapcore.ErrorLevel
+	}
+	fmt.Println("日志级别为：", GlobalConfig.Log.LevelNum)
+	fmt.Println("日志输出到：", GlobalConfig.Log.Target)
 }

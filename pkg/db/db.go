@@ -1,12 +1,11 @@
 package db
 
 import (
-	"fmt"
+	"GoChat/pkg/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"log"
-	"os"
+
+	"moul.io/zapgorm2"
 	"time"
 )
 
@@ -15,20 +14,10 @@ var (
 )
 
 func InitMySQL(dataSource string) {
-	fmt.Println("MySQL init...")
+	logger.Logger.Info("mysql init...")
 	var err error
-	//logFile, err := os.Create("./log/err.log")
-	//if err != nil {
-	//	panic(err)
-	//}
-	newLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold: time.Second,  // 慢SQL阈值
-			Colorful:      true,         // 颜色
-			LogLevel:      logger.Error, // 级别
-		},
-	)
+	newLogger := zapgorm2.New(logger.Logger)
+	newLogger.SetAsDefault()
 
 	DB, err = gorm.Open(mysql.Open(dataSource),
 		&gorm.Config{
@@ -49,5 +38,5 @@ func InitMySQL(dataSource string) {
 
 	// SetConnMaxLifetime 设置了连接可复用的最大时间
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	fmt.Println("MySQL init ok")
+	logger.Logger.Info("mysql init ok")
 }

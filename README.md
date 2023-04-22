@@ -196,7 +196,7 @@ Message 表数量总数：1000 0000条 = 总数500人 * 500条 * 40次
 
 ## TODO
 1. 接入层尝试实现主从 Reactor 线程模型后，再进行性能测试（参考：https://github.com/eranyanay/1m-go-websockets.git）
-2. 更友好的日志
+2. ~~更友好的日志~~
 3. 增加负载均衡，选择合适的 WebSocket 服务
 4. 实现下行消息可靠性，使用时间轮（参考：https://github.com/aceld/zinx/blob/HEAD/ztimer/timewheel.go）
 5. 实现 docker-compose 脚本

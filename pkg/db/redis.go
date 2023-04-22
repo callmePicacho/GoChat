@@ -1,8 +1,8 @@
 package db
 
 import (
+	"GoChat/pkg/logger"
 	"context"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -11,7 +11,7 @@ var (
 )
 
 func InitRedis(addr, password string) {
-	fmt.Println("Redis init...")
+	logger.Logger.Debug("Redis init ...")
 	RDB = redis.NewClient(&redis.Options{
 		Addr:         addr,
 		DB:           0,
@@ -23,5 +23,5 @@ func InitRedis(addr, password string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Redis init ok")
+	logger.Logger.Debug("Redis init ok")
 }

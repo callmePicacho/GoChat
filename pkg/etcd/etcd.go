@@ -4,7 +4,9 @@ import (
 	"GoChat/common"
 	"GoChat/config"
 	"GoChat/lib/etcd"
+	"GoChat/pkg/logger"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -17,7 +19,7 @@ var (
 // 2. 初始化服务发现，启动 watcher 监听所有 RPC 端口，以便有需要时能直接获取当前注册在 ETCD 的服务
 func InitETCD() {
 	hostPort := fmt.Sprintf("%s:%s", config.GlobalConfig.App.IP, config.GlobalConfig.App.RPCPort)
-	fmt.Println("注册服务, ", hostPort)
+	logger.Logger.Info("注册服务", zap.String("hostport", hostPort))
 
 	// 注册服务并设置 k-v 租约
 	err := etcd.RegisterServer(common.EtcdServerList+hostPort, hostPort, 5)
