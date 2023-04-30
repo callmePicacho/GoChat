@@ -25,11 +25,23 @@ GoChat 是一款使用 Golang 实现的简易 IM 服务器，主要特性：
 [性能优化](docs/性能优化.md)
 
 ## 项目启动
+docker 安装 MySQL、Redis、ETCD 和 RabbitMQ
+```shell
+# ETCD
+docker run -d --name etcd -p 2379:2379  -p 2380:2380  -e ALLOW_NONE_AUTHENTICATION=yes -e ETCD_ADVERTISE_CLIENT_URLS=http://etcd-server:2379 bitnami/etcd:latest
+# Redis
+docker run -d --name redis -p 6379:6379 redis
+# RabbitMQ
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management-alpine
+# MySQL 
+docker run -d --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root mysql
+```
+
+
 服务端启动：
-1. docker 安装 MySQL、Redis、ETCD、RabbitMQ
-2. 连接 MySQL，创建 gochat 库，进入执行 sql/create_table.sql 文件中 SQL 代码
-3. app.yaml 修改配置文件信息
-4. main.go 启动服务端
+1. 连接 MySQL，创建 gochat 库，进入执行 sql/create_table.sql 文件中 SQL 代码
+2. app.yaml 修改配置文件信息
+3. main.go 启动服务端
 
 客户端启动：
 1. 启动服务端后，执行 test/router_test.go 中测试可进行用户注册和群创建
